@@ -1,0 +1,24 @@
+{
+  "role": "Hybrid",
+  "connectivity": "Firebase",
+  "credentials": {
+    "ssid": "Raavinewairtel",
+    "pass": "12345678",
+    "mqttBroker": "192.168.31.159",
+    "mqttPort": "1883",
+    "mqttUser": "testauto",
+    "mqttPass": "1234",
+    "fbURL": "https://chinna-home-6mpu5u-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "fbSecret": "",
+    "connectivity": "Firebase"
+  },
+  "rooms": [
+    {
+      "board": "ESP32-S3-WROOM-1",
+      "room": "Master Bedroom",
+      "relays": 1,
+      "pins": [],
+      "devices": []
+    }
+  ]
+}

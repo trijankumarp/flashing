@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Project M - Cloud & Factory Flasher</title>
+<link rel="stylesheet" href="style.css">
+
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card" style="border: 2px solid #007bff; background: #1e1e24;">
+    <h2>⚡ Factory Web Flasher</h2>
+    <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Connect the ESP32 via USB and click Install to load the Universal Firmware.</p>
+    <div class="row">
+      <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Connectivity &amp; Cloud Credentials</h2>
+    <div id="connectivityBox">Loading...</div>
+  </div>
+
+  <div class="card">
+    <h2>Select Board</h2>
+    <select id="boardSelect">
+      <option>ESP32-S3-DevKitC N16R8</option>
+      <option>ESP32-S3-WROOM-1</option>
+      <option>ESP32-WROVER</option>
+      <option>ESP32 DevKit V1</option>
+      <option>ESP8266 NodeMCU</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>Define Device Role & Rooms</h2>
+    <div class="row">
+      <button onclick="setRole('Mother Hub')">Mother Hub</button>
+      <button onclick="setRole('Child Node')">Child Node</button>
+      <button onclick="setRole('Hybrid')">Hybrid</button>
+    </div>
+    <div class="info" id="roleInfo">Selected: Mother Hub</div>
+    <div id="motherPanel" style="display:none; margin-top:20px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Cloud Sync</h2>
+    <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Save the UI setup to Firebase. The flashed ESP32 will auto-sync.</p>
+    <div class="row">
+      <button onclick="buildNow()" style="background: #28a745; color: white;">Save Config to Cloud</button>
+    </div>
+    <div class="log" id="log">Ready...</div>
+  </div>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
