@@ -1,0 +1,14 @@
+{
+  "name": "Project M Universal Firmware",
+  "version": "1.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "bootloader.bin", "offset": 4096 },
+        { "path": "partition-table.bin", "offset": 32768 },
+        { "path": "esp_firmware.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}
