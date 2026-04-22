@@ -19,7 +19,7 @@ static const char *TAG = "M-OS";
 #define WIFI_PASS "YOUR_WIFI_PASSWORD_HERE"
 
 // YOUR FIREBASE URL
-#define FIREBASE_URL "https://projectm-flashing-default-rtdb.asia-southeast1.firebasedatabase.app/mos_config.json"
+#define FIREBASE_URL "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app/mos_config.json"
 
 // --- WiFi Connection Logic ---
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
