@@ -25,8 +25,8 @@ static const char *TAG = "M-OS";
 #define FIREBASE_CMD_URL     "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app/commands/latest.json"
 
 /* ============== DEFAULT WIFI ============== */
-#define DEFAULT_WIFI_SSID "M-OS"
-#define DEFAULT_WIFI_PASS "12345678"
+#define DEFAULT_WIFI_SSID ""
+#define DEFAULT_WIFI_PASS ""
 
 /* ============== GLOBALS ============== */
 static char wifi_ssid[64] = DEFAULT_WIFI_SSID;
