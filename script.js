@@ -1,12 +1,12 @@
-/* ─────────────────────────────────────────────
+/* =====================================================
    PROJECT M - FULL script.js
-───────────────────────────────────────────── */
+   Mother Hub / Hybrid / Child Node Supported
+===================================================== */
 
 /* GLOBALS */
 let selectedRole = "Mother Hub";
-let rooms = [];
 let selectedConnectivity = "MQTT";
-
+let rooms = [];
 window._cfg = {};
 
 const FIREBASE_BASE_URL =
@@ -21,7 +21,7 @@ const BOARDS = [
   "ESP8266 NodeMCU"
 ];
 
-/* FULL ROOM LIST */
+/* ROOMS */
 const ROOMS_LIST = [
   "Master Bedroom",
   "Master Washroom",
@@ -48,7 +48,7 @@ const ROOMS_LIST = [
   "Elevator"
 ];
 
-/* FULL DEVICE LIST */
+/* DEVICES */
 const DEVICE_LIST = [
   "Light",
   "Fan",
@@ -74,31 +74,32 @@ const CONNECTIVITY_OPTIONS = [
   { value: "None", label: "Offline" }
 ];
 
-/* ─────────────────────────────────────────────
+/* =====================================================
    START
-───────────────────────────────────────────── */
+===================================================== */
 window.onload = () => {
   renderConnectivityDropdown();
   setRole("Mother Hub");
 };
 
-/* ─────────────────────────────────────────────
+/* =====================================================
    CONNECTIVITY UI
-───────────────────────────────────────────── */
+===================================================== */
 function renderConnectivityDropdown() {
   const box = document.getElementById("connectivityBox");
   if (!box) return;
 
   let html = `
     <label>Connectivity Mode</label>
-    <select id="connectivitySelect" onchange="onConnectivityChange(this.value)">
+    <select id="connectivitySelect"
+      onchange="onConnectivityChange(this.value)">
   `;
 
   CONNECTIVITY_OPTIONS.forEach(item => {
     html += `
       <option value="${item.value}"
-        ${item.value === selectedConnectivity ? "selected" : ""}>
-        ${item.label}
+      ${selectedConnectivity === item.value ? "selected" : ""}>
+      ${item.label}
       </option>
     `;
   });
@@ -128,9 +129,12 @@ function renderCredFields() {
   let html = `
     <label>WiFi</label>
     <div class="grid2">
-      <input id="wifiSSID" placeholder="WiFi Name"
+      <input id="wifiSSID"
+        placeholder="WiFi Name"
         value="${cfg.ssid || ""}">
-      <input id="wifiPass" type="password"
+
+      <input id="wifiPass"
+        type="password"
         placeholder="WiFi Password"
         value="${cfg.pass || ""}">
     </div>
@@ -142,17 +146,24 @@ function renderCredFields() {
   ) {
     html += `
       <label>MQTT</label>
+
       <div class="grid2">
-        <input id="mqttBroker" placeholder="Broker"
+        <input id="mqttBroker"
+          placeholder="Broker"
           value="${cfg.mqttBroker || "broker.emqx.io"}">
-        <input id="mqttPort" placeholder="Port"
+
+        <input id="mqttPort"
+          placeholder="Port"
           value="${cfg.mqttPort || "1883"}">
       </div>
 
       <div class="grid2">
-        <input id="mqttUser" placeholder="Username"
+        <input id="mqttUser"
+          placeholder="Username"
           value="${cfg.mqttUser || ""}">
-        <input id="mqttPass" type="password"
+
+        <input id="mqttPass"
+          type="password"
           placeholder="Password"
           value="${cfg.mqttPass || ""}">
       </div>
@@ -165,10 +176,12 @@ function renderCredFields() {
   ) {
     html += `
       <label>Firebase</label>
+
       <input id="fbURL"
         value="${cfg.fbURL || FIREBASE_BASE_URL}">
+
       <input id="fbSecret"
-        placeholder="Secret / API Key"
+        placeholder="API Key / Secret"
         value="${cfg.fbSecret || ""}">
     `;
   }
@@ -205,36 +218,44 @@ function saveCreds() {
     document.getElementById("fbSecret")?.value || "";
 }
 
-/* ─────────────────────────────────────────────
+/* =====================================================
    ROLE
-───────────────────────────────────────────── */
+===================================================== */
 function setRole(role) {
   selectedRole = role;
 
-  document.getElementById("roleInfo").innerText =
-    "Selected: " + role;
+  const info = document.getElementById("roleInfo");
+  if (info) {
+    info.innerText = "Selected: " + role;
+  }
 
-  document.getElementById("motherPanel").style.display =
-    "block";
+  const panel = document.getElementById("motherPanel");
+  if (panel) {
+    panel.style.display = "block";
+  }
 
   renderTopPanel();
 }
 
-/* ─────────────────────────────────────────────
-   PANEL
-───────────────────────────────────────────── */
+/* =====================================================
+   MAIN PANEL
+===================================================== */
 function renderTopPanel() {
   const usedRooms = rooms.map(r => r.room);
 
-  const availableRooms = ROOMS_LIST.filter(
-    room => !usedRooms.includes(room)
+  let availableRooms = ROOMS_LIST.filter(
+    r => !usedRooms.includes(r)
   );
+
+  if (selectedRole === "Child Node") {
+    if (rooms.length >= 1) {
+      availableRooms = [];
+    }
+  }
 
   let html = "";
 
-  if (availableRooms.length === 0) {
-    html += `<div class="info">All rooms added</div>`;
-  } else {
+  if (availableRooms.length > 0) {
     html += `
       <label>Select Room</label>
       <select id="childRoom">
@@ -247,9 +268,16 @@ function renderTopPanel() {
       <select id="relayCount"></select>
 
       <br><br>
+
       <button onclick="addChildRoom()">
         + Add Room
       </button>
+    `;
+  } else {
+    html += `
+      <div class="info">
+        No more rooms available
+      </div>
     `;
   }
 
@@ -275,9 +303,9 @@ function loadRelayCount() {
   }
 }
 
-/* ─────────────────────────────────────────────
-   ROOM ADD
-───────────────────────────────────────────── */
+/* =====================================================
+   ADD ROOM
+===================================================== */
 function addChildRoom() {
   const room =
     document.getElementById("childRoom").value;
@@ -308,13 +336,12 @@ function removeRoom(index) {
   renderTopPanel();
 }
 
-/* ─────────────────────────────────────────────
-   ROOM RENDER
-───────────────────────────────────────────── */
+/* =====================================================
+   ROOM CARDS
+===================================================== */
 function renderRooms() {
-  const box = document.getElementById(
-    "childRoomsBox"
-  );
+  const box =
+    document.getElementById("childRoomsBox");
 
   if (!box) return;
 
@@ -355,14 +382,12 @@ function renderRooms() {
           </select>
 
           <select onchange="
-            savePin(${roomIndex},${i},this.value)
-          ">
+            savePin(${roomIndex},${i},this.value)">
             ${pinOptions(roomObj.pins[i])}
           </select>
 
           <select onchange="
-            saveDevice(${roomIndex},${i},this.value)
-          ">
+            saveDevice(${roomIndex},${i},this.value)">
             ${deviceOptions(roomObj.devices[i])}
           </select>
 
@@ -382,8 +407,8 @@ function pinOptions(selected) {
   for (let i = 1; i <= 48; i++) {
     html += `
       <option value="${i}"
-        ${selected == i ? "selected" : ""}>
-        ${i}
+      ${selected == i ? "selected" : ""}>
+      ${i}
       </option>
     `;
   }
@@ -392,14 +417,12 @@ function pinOptions(selected) {
 }
 
 function deviceOptions(selected) {
-  return DEVICE_LIST.map(
-    d => `
-      <option value="${d}"
-        ${selected === d ? "selected" : ""}>
-        ${d}
-      </option>
-    `
-  ).join("");
+  return DEVICE_LIST.map(d => `
+    <option value="${d}"
+    ${selected === d ? "selected" : ""}>
+    ${d}
+    </option>
+  `).join("");
 }
 
 function savePin(roomIndex, relayIndex, val) {
@@ -410,9 +433,9 @@ function saveDevice(roomIndex, relayIndex, val) {
   rooms[roomIndex].devices[relayIndex] = val;
 }
 
-/* ─────────────────────────────────────────────
-   FIREBASE SAVE
-───────────────────────────────────────────── */
+/* =====================================================
+   SAVE TO FIREBASE
+===================================================== */
 async function buildNow() {
   if (rooms.length === 0) {
     alert("Add at least one room");
