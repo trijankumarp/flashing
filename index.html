@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Project M - Cloud & Factory Flasher</title>
-
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
@@ -13,59 +12,21 @@
 <body>
 <div class="wrap">
 
-  <!-- FLASHER -->
   <div class="card">
     <h2>⚡ Factory Web Flasher</h2>
-    <p class="subtitle">
-      Connect ESP board with USB and click Install.
-    </p>
-
+    <p class="subtitle">Connect the ESP32 via USB and click Install to load the Universal Firmware.</p>
     <div class="row">
       <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
     </div>
   </div>
 
-  <!-- CLOUD -->
   <div class="card">
-    <h2>Connectivity & Cloud Credentials</h2>
-
-    <div class="grid2">
-
-      <div>
-        <label>Connectivity Mode</label>
-        <select id="connectivity">
-          <option>Firebase</option>
-          <option>MQTT</option>
-          <option>Offline</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Device Role</label>
-        <select id="role">
-          <option>Mother Hub</option>
-          <option>Child Node</option>
-          <option selected>Hybrid</option>
-        </select>
-      </div>
-
-      <div>
-        <label>WiFi SSID</label>
-        <input id="ssid" placeholder="WiFi Name">
-      </div>
-
-      <div>
-        <label>WiFi Password</label>
-        <input id="pass" placeholder="WiFi Password">
-      </div>
-
-    </div>
+    <h2>Connectivity &amp; Cloud Credentials</h2>
+    <div id="connectivityBox">Loading...</div>
   </div>
 
-  <!-- BOARD -->
   <div class="card">
     <h2>Select Board</h2>
-
     <select id="boardSelect">
       <option>ESP32-S3-DevKitC N16R8</option>
       <option>ESP32-S3-WROOM-1</option>
@@ -75,34 +36,27 @@
     </select>
   </div>
 
-  <!-- ROOM CONFIG -->
   <div class="card">
-    <h2>Rooms & Devices</h2>
-
-    <div id="roomList"></div>
-
+    <h2>Define Device Role & Rooms</h2>
     <div class="row">
-      <button onclick="addRoom()">+ Add Room</button>
+      <button onclick="setRole('Mother Hub')">Mother Hub</button>
+      <button onclick="setRole('Child Node')">Child Node</button>
+      <button onclick="setRole('Hybrid')">Hybrid</button>
     </div>
+    <div class="info" id="roleInfo">Selected: Mother Hub</div>
+    <div id="motherPanel" class="hidden-panel"></div>
   </div>
 
-  <!-- SAVE -->
   <div class="card">
     <h2>Cloud Sync</h2>
-
-    <p class="subtitle">
-      Save full setup to Firebase.
-    </p>
-
+    <p class="subtitle">Save the UI setup to Firebase. The flashed ESP32 will auto-sync.</p>
     <div class="row">
       <button onclick="buildNow()">Save Config to Cloud</button>
     </div>
-
     <div class="log" id="log">Ready...</div>
   </div>
 
 </div>
-
 <script src="script.js"></script>
 </body>
 </html>
