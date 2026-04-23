@@ -12,9 +12,9 @@
 <body>
 <div class="wrap">
 
-  <div class="card" style="border: 2px solid #007bff; background: #1e1e24;">
+  <div class="card flasher-card">
     <h2>⚡ Factory Web Flasher</h2>
-    <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Connect the ESP32 via USB and click Install to load the Universal Firmware.</p>
+    <p class="subtitle">Connect the ESP32 via USB and click Install to load the Universal Firmware.</p>
     <div class="row">
       <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
     </div>
@@ -44,14 +44,14 @@
       <button onclick="setRole('Hybrid')">Hybrid</button>
     </div>
     <div class="info" id="roleInfo">Selected: Mother Hub</div>
-    <div id="motherPanel" style="display:none; margin-top:20px;"></div>
+    <div id="motherPanel" class="hidden-panel"></div>
   </div>
 
   <div class="card">
     <h2>Cloud Sync</h2>
-    <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Save the UI setup to Firebase. The flashed ESP32 will auto-sync.</p>
+    <p class="subtitle">Save the UI setup to Firebase. The flashed ESP32 will auto-sync.</p>
     <div class="row">
-      <button onclick="buildNow()" style="background: #28a745; color: white;">Save Config to Cloud</button>
+      <button onclick="buildNow()">Save Config to Cloud</button>
     </div>
     <div class="log" id="log">Ready...</div>
   </div>
