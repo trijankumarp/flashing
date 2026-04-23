@@ -1,6 +1,6 @@
 /* =====================================================
    PROJECT M - FULL script.js
-   Mother Hub / Hybrid / Child Node Supported
+   Updated: Auto main.c generation + download
 ===================================================== */
 
 /* GLOBALS */
@@ -23,47 +23,22 @@ const BOARDS = [
 
 /* ROOMS */
 const ROOMS_LIST = [
-  "Master Bedroom",
-  "Master Washroom",
-
-  "Kids Bedroom",
-  "Kids Washroom",
-
-  "Guest Bedroom",
-  "Guest Washroom",
-
-  "Kitchen",
-  "Pooja Room",
-
-  "Living Room",
-  "Living Washroom",
-
-  "Office Room",
-  "Office Washroom",
-
-  "Balcony",
-  "Balcony Washroom",
-
-  "Main Entrance",
-  "Elevator"
+  "Master Bedroom","Master Washroom",
+  "Kids Bedroom","Kids Washroom",
+  "Guest Bedroom","Guest Washroom",
+  "Kitchen","Pooja Room",
+  "Living Room","Living Washroom",
+  "Office Room","Office Washroom",
+  "Balcony","Balcony Washroom",
+  "Main Entrance","Elevator"
 ];
 
 /* DEVICES */
 const DEVICE_LIST = [
-  "Light",
-  "Fan",
-  "AC",
-  "Socket",
-  "Geyser",
-  "Exhaust Fan",
-  "TV",
-  "Curtain",
-  "Bell",
-  "Night Lamp",
-  "Rope Light",
-  "RGB Light",
-  "Focus Light",
-  "Table Lamp"
+  "Light","Fan","AC","Socket","Geyser",
+  "Exhaust Fan","TV","Curtain","Bell",
+  "Night Lamp","Rope Light","RGB Light",
+  "Focus Light","Table Lamp"
 ];
 
 /* CONNECTIVITY */
@@ -74,9 +49,7 @@ const CONNECTIVITY_OPTIONS = [
   { value: "None", label: "Offline" }
 ];
 
-/* =====================================================
-   START
-===================================================== */
+/* START */
 window.onload = () => {
   renderConnectivityDropdown();
   setRole("Mother Hub");
@@ -110,7 +83,6 @@ function renderConnectivityDropdown() {
   `;
 
   box.innerHTML = html;
-
   renderCredFields();
 }
 
@@ -126,7 +98,7 @@ function renderCredFields() {
 
   const cfg = window._cfg;
 
-  let html = `
+  box.innerHTML = `
     <label>WiFi</label>
     <div class="grid2">
       <input id="wifiSSID"
@@ -139,54 +111,6 @@ function renderCredFields() {
         value="${cfg.pass || ""}">
     </div>
   `;
-
-  if (
-    selectedConnectivity === "MQTT" ||
-    selectedConnectivity === "Both"
-  ) {
-    html += `
-      <label>MQTT</label>
-
-      <div class="grid2">
-        <input id="mqttBroker"
-          placeholder="Broker"
-          value="${cfg.mqttBroker || "broker.emqx.io"}">
-
-        <input id="mqttPort"
-          placeholder="Port"
-          value="${cfg.mqttPort || "1883"}">
-      </div>
-
-      <div class="grid2">
-        <input id="mqttUser"
-          placeholder="Username"
-          value="${cfg.mqttUser || ""}">
-
-        <input id="mqttPass"
-          type="password"
-          placeholder="Password"
-          value="${cfg.mqttPass || ""}">
-      </div>
-    `;
-  }
-
-  if (
-    selectedConnectivity === "Firebase" ||
-    selectedConnectivity === "Both"
-  ) {
-    html += `
-      <label>Firebase</label>
-
-      <input id="fbURL"
-        value="${cfg.fbURL || FIREBASE_BASE_URL}">
-
-      <input id="fbSecret"
-        placeholder="API Key / Secret"
-        value="${cfg.fbSecret || ""}">
-    `;
-  }
-
-  box.innerHTML = html;
 }
 
 function saveCreds() {
@@ -195,27 +119,6 @@ function saveCreds() {
 
   window._cfg.pass =
     document.getElementById("wifiPass")?.value || "";
-
-  window._cfg.mqttBroker =
-    document.getElementById("mqttBroker")?.value ||
-    "broker.emqx.io";
-
-  window._cfg.mqttPort =
-    document.getElementById("mqttPort")?.value ||
-    "1883";
-
-  window._cfg.mqttUser =
-    document.getElementById("mqttUser")?.value || "";
-
-  window._cfg.mqttPass =
-    document.getElementById("mqttPass")?.value || "";
-
-  window._cfg.fbURL =
-    document.getElementById("fbURL")?.value ||
-    FIREBASE_BASE_URL;
-
-  window._cfg.fbSecret =
-    document.getElementById("fbSecret")?.value || "";
 }
 
 /* =====================================================
@@ -225,14 +128,10 @@ function setRole(role) {
   selectedRole = role;
 
   const info = document.getElementById("roleInfo");
-  if (info) {
-    info.innerText = "Selected: " + role;
-  }
+  if (info) info.innerText = "Selected: " + role;
 
   const panel = document.getElementById("motherPanel");
-  if (panel) {
-    panel.style.display = "block";
-  }
+  if (panel) panel.style.display = "block";
 
   renderTopPanel();
 }
@@ -247,10 +146,8 @@ function renderTopPanel() {
     r => !usedRooms.includes(r)
   );
 
-  if (selectedRole === "Child Node") {
-    if (rooms.length >= 1) {
-      availableRooms = [];
-    }
+  if (selectedRole === "Child Node" && rooms.length >= 1) {
+    availableRooms = [];
   }
 
   let html = "";
@@ -259,9 +156,8 @@ function renderTopPanel() {
     html += `
       <label>Select Room</label>
       <select id="childRoom">
-        ${availableRooms
-          .map(r => `<option>${r}</option>`)
-          .join("")}
+        ${availableRooms.map(r =>
+          `<option>${r}</option>`).join("")}
       </select>
 
       <label>Relay Count</label>
@@ -274,17 +170,12 @@ function renderTopPanel() {
       </button>
     `;
   } else {
-    html += `
-      <div class="info">
-        No more rooms available
-      </div>
-    `;
+    html += `<div class="info">No more rooms available</div>`;
   }
 
   html += `<div id="childRoomsBox"></div>`;
 
-  document.getElementById("motherPanel").innerHTML =
-    html;
+  document.getElementById("motherPanel").innerHTML = html;
 
   loadRelayCount();
   renderRooms();
@@ -297,9 +188,7 @@ function loadRelayCount() {
   sel.innerHTML = "";
 
   for (let i = 1; i <= 32; i++) {
-    sel.innerHTML += `
-      <option value="${i}">${i}</option>
-    `;
+    sel.innerHTML += `<option>${i}</option>`;
   }
 }
 
@@ -317,15 +206,12 @@ function addChildRoom() {
     document.getElementById("relayCount").value
   );
 
-  const pins = Array(relays).fill("1");
-  const devices = Array(relays).fill("Light");
-
   rooms.push({
     room,
     board,
     relays,
-    pins,
-    devices
+    pins: Array(relays).fill("1"),
+    devices: Array(relays).fill("Light")
   });
 
   renderTopPanel();
@@ -350,16 +236,11 @@ function renderRooms() {
     return;
   }
 
-  let html = `
-    <h2 style="margin-top:20px;">
-      Added Rooms
-    </h2>
-  `;
+  let html = `<h2 style="margin-top:20px;">Added Rooms</h2>`;
 
   rooms.forEach((roomObj, roomIndex) => {
     html += `
       <div class="card" style="margin-top:12px;">
-
         <div class="room-head">
           <h2>${roomObj.room}</h2>
 
@@ -434,6 +315,81 @@ function saveDevice(roomIndex, relayIndex, val) {
 }
 
 /* =====================================================
+   AUTO GENERATE main.c
+===================================================== */
+function generateMainC() {
+  let gpioInit = "";
+  let commandMap = "";
+
+  rooms.forEach(roomObj => {
+    roomObj.pins.forEach((pin, i) => {
+      const dev = roomObj.devices[i];
+
+      gpioInit += `
+  gpio_reset_pin(${pin});
+  gpio_set_direction(${pin}, GPIO_MODE_OUTPUT);
+  gpio_set_level(${pin}, 0);
+`;
+
+      commandMap += `
+  if (
+    strcmp(room,"${roomObj.room}") == 0 &&
+    strcmp(device,"${dev}") == 0
+  ) {
+    gpio_set_level(${pin},
+      strcmp(action,"ON")==0 ? 1 : 0);
+  }
+`;
+    });
+  });
+
+  return `
+#include <stdio.h>
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+
+void setup_gpio() {
+${gpioInit}
+}
+
+void execute_command(
+  const char *room,
+  const char *device,
+  const char *action
+) {
+${commandMap}
+}
+
+void app_main() {
+  setup_gpio();
+
+  while (1) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+`;
+}
+
+function downloadMainC() {
+  const code = generateMainC();
+
+  const blob = new Blob(
+    [code],
+    { type: "text/plain" }
+  );
+
+  const a = document.createElement("a");
+
+  a.href = URL.createObjectURL(blob);
+  a.download = "main.c";
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+}
+
+/* =====================================================
    SAVE TO FIREBASE
 ===================================================== */
 async function buildNow() {
@@ -470,16 +426,24 @@ async function buildNow() {
     );
 
     if (res.ok) {
+      log.className = "log";
       log.innerText =
-        "SUCCESS: Config saved to Firebase.";
+        "SUCCESS: Config saved.\nGenerating main.c...";
+
+      downloadMainC();
+
+      setTimeout(() => {
+        log.innerText =
+          "SUCCESS: Config saved.\nmain.c downloaded.";
+      }, 800);
+
     } else {
       log.className = "log error";
-      log.innerText =
-        "Firebase Error.";
+      log.innerText = "Firebase Error.";
     }
+
   } catch (e) {
     log.className = "log error";
-    log.innerText =
-      "Network Error.";
+    log.innerText = "Network Error.";
   }
 }
