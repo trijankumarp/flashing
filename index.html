@@ -3,30 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
 <title>Project M - Cloud & Factory Flasher</title>
+
 <link rel="stylesheet" href="style.css">
 
-<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script type="module"
+src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module">
+</script>
 
 </head>
 <body>
+
 <div class="wrap">
 
+  <!-- FLASHER -->
   <div class="card">
     <h2>⚡ Factory Web Flasher</h2>
-    <p class="subtitle">Connect the ESP32 via USB and click Install to load the Universal Firmware.</p>
+
+    <p class="subtitle">
+      Connect ESP board with USB and click Install.
+    </p>
+
     <div class="row">
-      <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
+      <esp-web-install-button
+        manifest="firmware/manifest.json">
+      </esp-web-install-button>
     </div>
   </div>
 
+  <!-- CONNECTIVITY -->
   <div class="card">
-    <h2>Connectivity &amp; Cloud Credentials</h2>
-    <div id="connectivityBox">Loading...</div>
+    <h2>Connectivity & Cloud Credentials</h2>
+
+    <div id="connectivityBox">
+      Loading...
+    </div>
   </div>
 
+  <!-- BOARD -->
   <div class="card">
     <h2>Select Board</h2>
+
     <select id="boardSelect">
       <option>ESP32-S3-DevKitC N16R8</option>
       <option>ESP32-S3-WROOM-1</option>
@@ -36,27 +54,56 @@
     </select>
   </div>
 
+  <!-- ROLE + ROOMS -->
   <div class="card">
     <h2>Define Device Role & Rooms</h2>
+
     <div class="row">
-      <button onclick="setRole('Mother Hub')">Mother Hub</button>
-      <button onclick="setRole('Child Node')">Child Node</button>
-      <button onclick="setRole('Hybrid')">Hybrid</button>
+      <button onclick="setRole('Mother Hub')">
+        Mother Hub
+      </button>
+
+      <button onclick="setRole('Child Node')">
+        Child Node
+      </button>
+
+      <button onclick="setRole('Hybrid')">
+        Hybrid
+      </button>
     </div>
-    <div class="info" id="roleInfo">Selected: Mother Hub</div>
-    <div id="motherPanel" class="hidden-panel"></div>
+
+    <div class="info" id="roleInfo">
+      Selected: Mother Hub
+    </div>
+
+    <div id="motherPanel"
+         class="hidden-panel">
+    </div>
   </div>
 
+  <!-- CLOUD SAVE -->
   <div class="card">
     <h2>Cloud Sync</h2>
-    <p class="subtitle">Save the UI setup to Firebase. The flashed ESP32 will auto-sync.</p>
+
+    <p class="subtitle">
+      Save configuration to Firebase.
+      Device auto syncs after flash.
+    </p>
+
     <div class="row">
-      <button onclick="buildNow()">Save Config to Cloud</button>
+      <button onclick="buildNow()">
+        Save Config to Cloud
+      </button>
     </div>
-    <div class="log" id="log">Ready...</div>
+
+    <div class="log" id="log">
+      Ready...
+    </div>
   </div>
 
 </div>
+
 <script src="script.js"></script>
+
 </body>
 </html>
