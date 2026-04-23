@@ -3,11 +3,25 @@
   "version": "1.0.0",
   "builds": [
     {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "esp32-s3/bootloader.bin", "offset": 0 },
+        { "path": "esp32-s3/partition-table.bin", "offset": 32768 },
+        { "path": "esp32-s3/esp_firmware.bin", "offset": 65536 }
+      ]
+    },
+    {
       "chipFamily": "ESP32",
       "parts": [
-        { "path": "bootloader.bin", "offset": 4096 },
-        { "path": "partition-table.bin", "offset": 32768 },
-        { "path": "esp_firmware.bin", "offset": 65536 }
+        { "path": "esp32/bootloader.bin", "offset": 4096 },
+        { "path": "esp32/partition-table.bin", "offset": 32768 },
+        { "path": "esp32/esp_firmware.bin", "offset": 65536 }
+      ]
+    },
+    {
+      "chipFamily": "ESP8266",
+      "parts": [
+        { "path": "esp8266/esp_firmware.bin", "offset": 0 }
       ]
     }
   ]
