@@ -447,3 +447,90 @@ async function buildNow() {
     log.innerText = "Network Error.";
   }
 }
+/* =====================================================
+USB SEND WIFI TO ESP (Web Serial API)
+===================================================== */
+
+/* ---------- CREATE BUTTON AUTO ---------- */
+window.addEventListener("load", () => {
+  setTimeout(addWifiSendButton, 800);
+});
+
+function addWifiSendButton() {
+  const box = document.getElementById("connectivityBox");
+  if (!box) return;
+
+  if (document.getElementById("wifiSendBtn")) return;
+
+  const btn = document.createElement("button");
+  btn.id = "wifiSendBtn";
+  btn.innerText = "Send WiFi to Device";
+  btn.style.marginTop = "14px";
+  btn.onclick = sendWifiToESP;
+
+  box.appendChild(btn);
+}
+
+/* ---------- SEND WIFI ---------- */
+async function sendWifiToESP() {
+  const ssid =
+    document.getElementById("wifiSSID")?.value || "";
+
+  const pass =
+    document.getElementById("wifiPass")?.value || "";
+
+  const log = document.getElementById("log");
+
+  if (!ssid) {
+    log.className = "log error";
+    log.innerText = "Enter WiFi Name";
+    return;
+  }
+
+  if (!("serial" in navigator)) {
+    log.className = "log error";
+    log.innerText =
+      "Browser not supported. Use Chrome / Edge.";
+    return;
+  }
+
+  try {
+    log.className = "log";
+    log.innerText = "Select ESP Port...";
+
+    const port =
+      await navigator.serial.requestPort();
+
+    await port.open({
+      baudRate: 115200
+    });
+
+    const writer =
+      port.writable.getWriter();
+
+    const payload = JSON.stringify({
+      type: "wifi",
+      ssid: ssid,
+      pass: pass
+    }) + "\n";
+
+    const data =
+      new TextEncoder().encode(payload);
+
+    await writer.write(data);
+
+    writer.releaseLock();
+
+    await port.close();
+
+    log.className = "log";
+    log.innerText =
+      "SUCCESS:\nWiFi sent to ESP.";
+  }
+
+  catch (e) {
+    log.className = "log error";
+    log.innerText =
+      "Serial Error:\n" + e.message;
+  }
+}
