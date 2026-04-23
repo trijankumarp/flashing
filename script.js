@@ -27,23 +27,6 @@ const CONNECTIVITY_OPTIONS = [
   { value: "None",     label: "None (local WiFi only)" }
 ];
 
-/* ─── WEB SERIAL PORTS ──────────────────────── */
-// This now works because you are using HTTPS via GitHub Pages
-async function loadPorts() {
-  let sel = document.getElementById("portSelect");
-  if (!sel) return;
-  
-  try {
-    if ("serial" in navigator) {
-      sel.innerHTML = `<option value="none">Click 'Connect' to select ESP32</option>`;
-    } else {
-      sel.innerHTML = `<option>Browser not supported (Use Chrome/Edge)</option>`;
-    }
-  } catch (e) {
-    sel.innerHTML = `<option>Error loading ports</option>`;
-  }
-}
-
 /* ─── CONNECTIVITY & CREDENTIALS ─────────────── */
 function renderConnectivityDropdown() {
   let box = document.getElementById("connectivityBox");
@@ -188,7 +171,15 @@ function addChildRoom() {
     alert(`"${room}" already added!`);
     return;
   }
-  rooms.push({ board, room, relays, pins: [], devices: [] });
+  
+  // Set default values immediately so they aren't empty if user ignores dropdowns
+  let isESP32S3orWROVER = board.includes("ESP32-S3") || board.includes("ESP32-WROVER");
+  let defaultPin = isESP32S3orWROVER ? "1" : "D1";
+  
+  let defaultPins = Array(relays).fill(defaultPin);
+  let defaultDevices = Array(relays).fill("Fan");
+
+  rooms.push({ board, room, relays, pins: defaultPins, devices: defaultDevices });
   renderTopPanel();
 }
 
@@ -210,7 +201,7 @@ function renderRooms() {
       <div class="card" style="margin-top:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <h2>${r.room}</h2>
-          <button onclick="removeRoom(${index})" style="background:#ff3b3b;color:#fff;padding:0 14px;height:36px;font-size:13px;">✕ Remove</button>
+          <button onclick="removeRoom(${index})" style="background:#e53935;color:#fff;padding:0 14px;height:36px;font-size:13px;min-width:auto;">✕ Remove</button>
         </div>
         ${selectedRole !== "Hybrid" ? `
           <label>${isChild ? "Mother Device" : "Child Device"}</label>
@@ -227,21 +218,25 @@ function renderRooms() {
 
 function changeBoard(index, val) {
   rooms[index].board = val;
+  // Reset default pins when board changes to ensure compatibility 
+  let isESP32S3orWROVER = val.includes("ESP32-S3") || val.includes("ESP32-WROVER");
+  let defaultPin = isESP32S3orWROVER ? "1" : "D1";
+  rooms[index].pins = Array(rooms[index].relays).fill(defaultPin);
   renderRooms();
 }
 
 function makeRelayInputs(board, total, roomIndex) {
   let html = `<div style="margin-top:10px;">`;
+  let currentPins = rooms[roomIndex].pins;
+  let currentDevices = rooms[roomIndex].devices;
+
   for (let i = 1; i <= total; i++) {
     html += `
       <div class="grid3" style="margin-bottom:8px;">
         <select><option>IN${i}</option></select>
-        <select onchange="savePin(${roomIndex},${i-1},this.value)">${pinOptions(board)}</select>
+        <select onchange="savePin(${roomIndex},${i-1},this.value)">${pinOptions(board, currentPins[i-1])}</select>
         <select onchange="saveDevice(${roomIndex},${i-1},this.value)">
-          <option>Fan</option><option>AC</option><option>Light</option>
-          <option>Ceiling Light</option><option>Main Fan</option><option>Socket</option>
-          <option>Exhaust Fan</option><option>Geyser</option><option>TV Point</option>
-          <option>Night Light</option><option>Bed Light</option><option>Study Light</option>
+          ${deviceOptions(currentDevices[i-1])}
         </select>
       </div>
     `;
@@ -250,18 +245,29 @@ function makeRelayInputs(board, total, roomIndex) {
   return html;
 }
 
-function savePin(ri, idx, val) { if (!rooms[ri].pins) rooms[ri].pins = []; rooms[ri].pins[idx] = val; }
-function saveDevice(ri, idx, val) { if (!rooms[ri].devices) rooms[ri].devices = []; rooms[ri].devices[idx] = val; }
+function savePin(ri, idx, val) { rooms[ri].pins[idx] = val; }
+function saveDevice(ri, idx, val) { rooms[ri].devices[idx] = val; }
 
-function pinOptions(board) {
+function pinOptions(board, selectedPin) {
   let isESP32S3orWROVER = board.includes("ESP32-S3") || board.includes("ESP32-WROVER");
   let html = "";
   if (isESP32S3orWROVER) {
-    for (let i = 1; i <= 100; i++) html += `<option value="${i}">${i}</option>`;
+    for (let i = 1; i <= 100; i++) {
+      let val = i.toString();
+      html += `<option value="${val}" ${val === selectedPin ? "selected" : ""}>${val}</option>`;
+    }
   } else {
-    for (let i = 1; i <= 100; i++) html += `<option value="D${i}">D${i}</option>`;
+    for (let i = 1; i <= 100; i++) {
+      let val = `D${i}`;
+      html += `<option value="${val}" ${val === selectedPin ? "selected" : ""}>${val}</option>`;
+    }
   }
   return html;
+}
+
+function deviceOptions(selectedDev) {
+  const devs = ["Fan", "AC", "Light", "Ceiling Light", "Main Fan", "Socket", "Exhaust Fan", "Geyser", "TV Point", "Night Light", "Bed Light", "Study Light"];
+  return devs.map(d => `<option value="${d}" ${d === selectedDev ? "selected" : ""}>${d}</option>`).join("");
 }
 
 function getCredentials() {
@@ -284,7 +290,9 @@ async function buildNow() {
     lastUpdated: new Date().toISOString()
   };
 
-  document.getElementById("log").innerText = "⏳ Pushing configuration to Singapore Cloud...";
+  let logBox = document.getElementById("log");
+  logBox.className = "log"; 
+  logBox.innerText = "⏳ Pushing configuration to Singapore Cloud...";
 
   let firebaseURL = `${FIREBASE_BASE_URL}/mos_config.json`;
 
@@ -296,42 +304,21 @@ async function buildNow() {
     });
 
     if (res.ok) {
-      document.getElementById("log").innerText = "✅ SUCCESS: Config saved to projectm-chinna!\nESP32 will sync now.";
+      logBox.className = "log"; // Standard styling (Green text)
+      logBox.innerText = "✅ SUCCESS: Config saved to projectm-chinna!\nESP32 will sync now.";
     } else {
       let err = await res.text();
-      document.getElementById("log").innerText = "❌ Firebase Error: " + err;
+      logBox.className = "log error"; // Triggers CSS .error class (Red text)
+      logBox.innerText = "❌ Firebase Error: " + err;
     }
   } catch (e) {
-    document.getElementById("log").innerText = "❌ Network Error: Check internet connection.";
+    logBox.className = "log error"; // Triggers CSS .error class (Red text)
+    logBox.innerText = "❌ Network Error: Check internet connection.";
   }
-}
-
-/* ─── WEB SERIAL ACTIONS (USB) ───────────────── */
-async function flashNow() {
-  if (!("serial" in navigator)) {
-    alert("Please use Chrome or Edge to flash your ESP32.");
-    return;
-  }
-  // This triggers the browser USB port selector
-  try {
-    const port = await navigator.serial.requestPort();
-    document.getElementById("log").innerText = "🔌 Port Selected. Ready to flash firmware folder.";
-  } catch (e) {
-    document.getElementById("log").innerText = "❌ Port Selection Cancelled.";
-  }
-}
-
-function eraseNow() {
-  alert("Feature coming soon: This will wipe the ESP32 memory.");
-}
-
-function monitorNow() {
-  alert("Feature coming soon: This will show live logs from the USB port.");
 }
 
 /* ─── INITIALIZE ─────────────────────────────── */
 window.onload = () => {
-  loadPorts();
   renderConnectivityDropdown();
   setRole("Mother Hub");
 };
