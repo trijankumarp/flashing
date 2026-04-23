@@ -1,6 +1,5 @@
 /* =====================================================
-   PROJECT M - FULL script.js
-   Updated: Auto main.c generation + download
+PROJECT M - script.js
 ===================================================== */
 
 /* GLOBALS */
@@ -10,53 +9,45 @@ let rooms = [];
 window._cfg = {};
 
 const FIREBASE_BASE_URL =
-  "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app";
+"https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-/* BOARDS */
-const BOARDS = [
-  "ESP32-S3-DevKitC N16R8",
-  "ESP32-S3-WROOM-1",
-  "ESP32-WROVER",
-  "ESP32 DevKit V1",
-  "ESP8266 NodeMCU"
-];
-
-/* ROOMS */
+/* LISTS */
 const ROOMS_LIST = [
-  "Master Bedroom","Master Washroom",
-  "Kids Bedroom","Kids Washroom",
-  "Guest Bedroom","Guest Washroom",
-  "Kitchen","Pooja Room",
-  "Living Room","Living Washroom",
-  "Office Room","Office Washroom",
-  "Balcony","Balcony Washroom",
-  "Main Entrance","Elevator"
+"Master Bedroom","Master Washroom",
+"Kids Bedroom","Kids Washroom",
+"Guest Bedroom","Guest Washroom",
+"Kitchen","Pooja Room",
+"Living Room","Living Washroom",
+"Office Room","Office Washroom",
+"Balcony","Balcony Washroom",
+"Main Entrance","Elevator"
 ];
 
-/* DEVICES */
 const DEVICE_LIST = [
-  "Light","Fan","AC","Socket","Geyser",
-  "Exhaust Fan","TV","Curtain","Bell",
-  "Night Lamp","Rope Light","RGB Light",
-  "Focus Light","Table Lamp"
+"Light","Fan","AC","Socket","Geyser",
+"Exhaust Fan","TV","Curtain","Bell",
+"Night Lamp","Rope Light","RGB Light",
+"Focus Light","Table Lamp"
 ];
 
-/* CONNECTIVITY */
 const CONNECTIVITY_OPTIONS = [
-  { value: "MQTT", label: "MQTT" },
-  { value: "Firebase", label: "Firebase" },
-  { value: "Both", label: "MQTT + Firebase" },
-  { value: "None", label: "Offline" }
+{ value:"MQTT", label:"MQTT" },
+{ value:"Firebase", label:"Firebase" },
+{ value:"Both", label:"MQTT + Firebase" },
+{ value:"None", label:"Offline" }
 ];
 
-/* START */
+/* =====================================================
+START
+===================================================== */
 window.onload = () => {
   renderConnectivityDropdown();
   setRole("Mother Hub");
+  setTimeout(addWifiSendButton, 800);
 };
 
 /* =====================================================
-   CONNECTIVITY UI
+CONNECTIVITY
 ===================================================== */
 function renderConnectivityDropdown() {
   const box = document.getElementById("connectivityBox");
@@ -79,7 +70,7 @@ function renderConnectivityDropdown() {
 
   html += `
     </select>
-    <div id="credFields" style="margin-top:14px;"></div>
+    <div id="credFields"></div>
   `;
 
   box.innerHTML = html;
@@ -96,19 +87,18 @@ function renderCredFields() {
   const box = document.getElementById("credFields");
   if (!box) return;
 
-  const cfg = window._cfg;
-
   box.innerHTML = `
     <label>WiFi</label>
+
     <div class="grid2">
       <input id="wifiSSID"
         placeholder="WiFi Name"
-        value="${cfg.ssid || ""}">
+        value="">
 
       <input id="wifiPass"
         type="password"
         placeholder="WiFi Password"
-        value="${cfg.pass || ""}">
+        value="">
     </div>
   `;
 }
@@ -122,7 +112,7 @@ function saveCreds() {
 }
 
 /* =====================================================
-   ROLE
+ROLE
 ===================================================== */
 function setRole(role) {
   selectedRole = role;
@@ -137,30 +127,35 @@ function setRole(role) {
 }
 
 /* =====================================================
-   MAIN PANEL
+ROOM PANEL
 ===================================================== */
 function renderTopPanel() {
-  const usedRooms = rooms.map(r => r.room);
+  const used = rooms.map(r => r.room);
 
-  let availableRooms = ROOMS_LIST.filter(
-    r => !usedRooms.includes(r)
+  let available = ROOMS_LIST.filter(
+    r => !used.includes(r)
   );
 
-  if (selectedRole === "Child Node" && rooms.length >= 1) {
-    availableRooms = [];
+  if (
+    selectedRole === "Child Node" &&
+    rooms.length >= 1
+  ) {
+    available = [];
   }
 
   let html = "";
 
-  if (availableRooms.length > 0) {
+  if (available.length > 0) {
     html += `
       <label>Select Room</label>
+
       <select id="childRoom">
-        ${availableRooms.map(r =>
+        ${available.map(r =>
           `<option>${r}</option>`).join("")}
       </select>
 
       <label>Relay Count</label>
+
       <select id="relayCount"></select>
 
       <br><br>
@@ -170,19 +165,26 @@ function renderTopPanel() {
       </button>
     `;
   } else {
-    html += `<div class="info">No more rooms available</div>`;
+    html += `
+      <div class="info">
+        No more rooms available
+      </div>
+    `;
   }
 
   html += `<div id="childRoomsBox"></div>`;
 
-  document.getElementById("motherPanel").innerHTML = html;
+  document.getElementById("motherPanel").innerHTML =
+    html;
 
   loadRelayCount();
   renderRooms();
 }
 
 function loadRelayCount() {
-  const sel = document.getElementById("relayCount");
+  const sel =
+    document.getElementById("relayCount");
+
   if (!sel) return;
 
   sel.innerHTML = "";
@@ -192,15 +194,9 @@ function loadRelayCount() {
   }
 }
 
-/* =====================================================
-   ADD ROOM
-===================================================== */
 function addChildRoom() {
   const room =
     document.getElementById("childRoom").value;
-
-  const board =
-    document.getElementById("boardSelect").value;
 
   const relays = parseInt(
     document.getElementById("relayCount").value
@@ -208,7 +204,6 @@ function addChildRoom() {
 
   rooms.push({
     room,
-    board,
     relays,
     pins: Array(relays).fill("1"),
     devices: Array(relays).fill("Light")
@@ -222,9 +217,6 @@ function removeRoom(index) {
   renderTopPanel();
 }
 
-/* =====================================================
-   ROOM CARDS
-===================================================== */
 function renderRooms() {
   const box =
     document.getElementById("childRoomsBox");
@@ -239,19 +231,21 @@ function renderRooms() {
   let html = `<h2 style="margin-top:20px;">Added Rooms</h2>`;
 
   rooms.forEach((roomObj, roomIndex) => {
+
     html += `
       <div class="card" style="margin-top:12px;">
-        <div class="room-head">
-          <h2>${roomObj.room}</h2>
 
-          <button onclick="removeRoom(${roomIndex})">
-            Remove
-          </button>
-        </div>
+      <div class="room-head">
+        <h2>${roomObj.room}</h2>
 
-        <div class="info">
-          Relays: ${roomObj.relays}
-        </div>
+        <button onclick="removeRoom(${roomIndex})">
+          Remove
+        </button>
+      </div>
+
+      <div class="info">
+        Relays: ${roomObj.relays}
+      </div>
     `;
 
     for (let i = 0; i < roomObj.relays; i++) {
@@ -259,7 +253,7 @@ function renderRooms() {
         <div class="grid3">
 
           <select>
-            <option>IN${i + 1}</option>
+            <option>IN${i+1}</option>
           </select>
 
           <select onchange="
@@ -306,36 +300,34 @@ function deviceOptions(selected) {
   `).join("");
 }
 
-function savePin(roomIndex, relayIndex, val) {
-  rooms[roomIndex].pins[relayIndex] = val;
+function savePin(r, p, v) {
+  rooms[r].pins[p] = v;
 }
 
-function saveDevice(roomIndex, relayIndex, val) {
-  rooms[roomIndex].devices[relayIndex] = val;
+function saveDevice(r, p, v) {
+  rooms[r].devices[p] = v;
 }
 
 /* =====================================================
-   AUTO GENERATE main.c
+GENERATE main.c
 ===================================================== */
 function generateMainC() {
-  let gpioInit = "";
-  let commandMap = "";
+  let gpio = "";
+  let cmd = "";
 
-  rooms.forEach(roomObj => {
-    roomObj.pins.forEach((pin, i) => {
-      const dev = roomObj.devices[i];
+  rooms.forEach(room => {
+    room.pins.forEach((pin, i) => {
+      const dev = room.devices[i];
 
-      gpioInit += `
+      gpio += `
   gpio_reset_pin(${pin});
   gpio_set_direction(${pin}, GPIO_MODE_OUTPUT);
-  gpio_set_level(${pin}, 0);
+  gpio_set_level(${pin},0);
 `;
 
-      commandMap += `
-  if (
-    strcmp(room,"${roomObj.room}") == 0 &&
-    strcmp(device,"${dev}") == 0
-  ) {
+      cmd += `
+  if(strcmp(room,"${room.room}")==0 &&
+     strcmp(device,"${dev}")==0){
     gpio_set_level(${pin},
       strcmp(action,"ON")==0 ? 1 : 0);
   }
@@ -350,22 +342,21 @@ function generateMainC() {
 #include "freertos/task.h"
 #include "driver/gpio.h"
 
-void setup_gpio() {
-${gpioInit}
+void setup_gpio(){
+${gpio}
 }
 
 void execute_command(
-  const char *room,
-  const char *device,
-  const char *action
-) {
-${commandMap}
+const char *room,
+const char *device,
+const char *action){
+${cmd}
 }
 
-void app_main() {
+void app_main(){
   setup_gpio();
 
-  while (1) {
+  while(1){
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
@@ -377,10 +368,11 @@ function downloadMainC() {
 
   const blob = new Blob(
     [code],
-    { type: "text/plain" }
+    { type:"text/plain" }
   );
 
-  const a = document.createElement("a");
+  const a =
+    document.createElement("a");
 
   a.href = URL.createObjectURL(blob);
   a.download = "main.c";
@@ -390,7 +382,7 @@ function downloadMainC() {
 }
 
 /* =====================================================
-   SAVE TO FIREBASE
+SAVE CONFIG
 ===================================================== */
 async function buildNow() {
   if (rooms.length === 0) {
@@ -401,68 +393,69 @@ async function buildNow() {
   saveCreds();
 
   const payload = {
-    role: selectedRole,
-    connectivity: selectedConnectivity,
-    credentials: window._cfg,
-    rooms: rooms,
-    lastUpdated: new Date().toISOString()
+    role:selectedRole,
+    connectivity:selectedConnectivity,
+    credentials:window._cfg,
+    rooms:rooms,
+    lastUpdated:new Date().toISOString()
   };
 
-  const log = document.getElementById("log");
+  const log =
+    document.getElementById("log");
 
   log.className = "log";
-  log.innerText = "Saving to Cloud...";
+  log.innerText = "Saving...";
 
   try {
     const res = await fetch(
       `${FIREBASE_BASE_URL}/mos_config.json`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json"
         },
-        body: JSON.stringify(payload)
+        body:JSON.stringify(payload)
       }
     );
 
     if (res.ok) {
-      log.className = "log";
       log.innerText =
-        "SUCCESS: Config saved.\nGenerating main.c...";
+        "Saved.\nGenerating main.c...";
 
       downloadMainC();
 
       setTimeout(() => {
         log.innerText =
-          "SUCCESS: Config saved.\nmain.c downloaded.";
+          "Saved.\nmain.c downloaded.";
       }, 800);
 
     } else {
       log.className = "log error";
-      log.innerText = "Firebase Error.";
+      log.innerText = "Firebase Error";
     }
 
-  } catch (e) {
+  } catch(e) {
     log.className = "log error";
-    log.innerText = "Network Error.";
+    log.innerText = "Network Error";
   }
 }
+
 /* =====================================================
-USB SEND WIFI TO ESP (Web Serial API)
+SEND WIFI TO ESP
 ===================================================== */
-
-/* ---------- CREATE BUTTON AUTO ---------- */
-window.addEventListener("load", () => {
-  setTimeout(addWifiSendButton, 800);
-});
-
 function addWifiSendButton() {
-  const box = document.getElementById("connectivityBox");
+  const box =
+    document.getElementById("connectivityBox");
+
   if (!box) return;
 
-  if (document.getElementById("wifiSendBtn")) return;
+  if (
+    document.getElementById("wifiSendBtn")
+  ) return;
 
-  const btn = document.createElement("button");
+  const btn =
+    document.createElement("button");
+
   btn.id = "wifiSendBtn";
   btn.innerText = "Send WiFi to Device";
   btn.style.marginTop = "14px";
@@ -471,7 +464,6 @@ function addWifiSendButton() {
   box.appendChild(btn);
 }
 
-/* ---------- SEND WIFI ---------- */
 async function sendWifiToESP() {
   const ssid =
     document.getElementById("wifiSSID")?.value || "";
@@ -479,7 +471,8 @@ async function sendWifiToESP() {
   const pass =
     document.getElementById("wifiPass")?.value || "";
 
-  const log = document.getElementById("log");
+  const log =
+    document.getElementById("log");
 
   if (!ssid) {
     log.className = "log error";
@@ -490,47 +483,55 @@ async function sendWifiToESP() {
   if (!("serial" in navigator)) {
     log.className = "log error";
     log.innerText =
-      "Browser not supported. Use Chrome / Edge.";
+      "Use Chrome / Edge";
     return;
   }
+
+  let port = null;
+  let writer = null;
 
   try {
     log.className = "log";
     log.innerText = "Select ESP Port...";
 
-    const port =
+    port =
       await navigator.serial.requestPort();
 
     await port.open({
-      baudRate: 115200
+      baudRate:115200
     });
 
-    const writer =
+    writer =
       port.writable.getWriter();
 
-    const payload = JSON.stringify({
-      type: "wifi",
-      ssid: ssid,
-      pass: pass
-    }) + "\n";
+    const payload =
+      JSON.stringify({
+        type:"wifi",
+        ssid:ssid,
+        pass:pass
+      }) + "\n";
 
-    const data =
-      new TextEncoder().encode(payload);
+    await writer.write(
+      new TextEncoder().encode(payload)
+    );
 
-    await writer.write(data);
-
-    writer.releaseLock();
-
-    await port.close();
-
-    log.className = "log";
     log.innerText =
-      "SUCCESS:\nWiFi sent to ESP.";
+      "SUCCESS:\nWiFi sent.";
   }
 
-  catch (e) {
+  catch(e) {
     log.className = "log error";
     log.innerText =
       "Serial Error:\n" + e.message;
+  }
+
+  finally {
+    try {
+      writer?.releaseLock();
+    } catch {}
+
+    try {
+      await port?.close();
+    } catch {}
   }
 }
