@@ -1,11 +1,18 @@
-/* ─── CONFIGURATION & GLOBALS ────────────────── */
+/* ─────────────────────────────────────────────
+   PROJECT M - FULL script.js
+───────────────────────────────────────────── */
+
+/* GLOBALS */
 let selectedRole = "Mother Hub";
 let rooms = [];
 let selectedConnectivity = "MQTT";
+
 window._cfg = {};
 
-const FIREBASE_BASE_URL = "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIREBASE_BASE_URL =
+  "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app";
 
+/* BOARDS */
 const BOARDS = [
   "ESP32-S3-DevKitC N16R8",
   "ESP32-S3-WROOM-1",
@@ -14,35 +21,95 @@ const BOARDS = [
   "ESP8266 NodeMCU"
 ];
 
+/* FULL ROOM LIST */
 const ROOMS_LIST = [
-  "Master Bedroom", "Kids Bedroom", "Guest Bedroom", "Elders Bedroom",
-  "Kitchen", "Living Room", "Office Room", "Balcony", "Kitchen Balcony",
-  "Master Bedroom Washroom", "Kids Bedroom Washroom", "Guest Bedroom Washroom"
+  "Master Bedroom",
+  "Master Washroom",
+
+  "Kids Bedroom",
+  "Kids Washroom",
+
+  "Guest Bedroom",
+  "Guest Washroom",
+
+  "Kitchen",
+  "Pooja Room",
+
+  "Living Room",
+  "Living Washroom",
+
+  "Office Room",
+  "Office Washroom",
+
+  "Balcony",
+  "Balcony Washroom",
+
+  "Main Entrance",
+  "Elevator"
 ];
 
+/* FULL DEVICE LIST */
+const DEVICE_LIST = [
+  "Light",
+  "Fan",
+  "AC",
+  "Socket",
+  "Geyser",
+  "Exhaust Fan",
+  "TV",
+  "Curtain",
+  "Bell",
+  "Night Lamp",
+  "Rope Light",
+  "RGB Light",
+  "Focus Light",
+  "Table Lamp"
+];
+
+/* CONNECTIVITY */
 const CONNECTIVITY_OPTIONS = [
-  { value: "MQTT",     label: "MQTT — EMQX public broker" },
-  { value: "Firebase", label: "Firebase Realtime Database" },
-  { value: "Both",     label: "Both MQTT + Firebase" },
-  { value: "None",     label: "None (local WiFi only)" }
+  { value: "MQTT", label: "MQTT" },
+  { value: "Firebase", label: "Firebase" },
+  { value: "Both", label: "MQTT + Firebase" },
+  { value: "None", label: "Offline" }
 ];
 
-/* ─── CONNECTIVITY & CREDENTIALS ─────────────── */
+/* ─────────────────────────────────────────────
+   START
+───────────────────────────────────────────── */
+window.onload = () => {
+  renderConnectivityDropdown();
+  setRole("Mother Hub");
+};
+
+/* ─────────────────────────────────────────────
+   CONNECTIVITY UI
+───────────────────────────────────────────── */
 function renderConnectivityDropdown() {
-  let box = document.getElementById("connectivityBox");
+  const box = document.getElementById("connectivityBox");
   if (!box) return;
 
-  let optHTML = CONNECTIVITY_OPTIONS.map(o =>
-    `<option value="${o.value}" ${o.value === selectedConnectivity ? "selected" : ""}>${o.label}</option>`
-  ).join("");
-
-  box.innerHTML = `
+  let html = `
     <label>Connectivity Mode</label>
     <select id="connectivitySelect" onchange="onConnectivityChange(this.value)">
-      ${optHTML}
+  `;
+
+  CONNECTIVITY_OPTIONS.forEach(item => {
+    html += `
+      <option value="${item.value}"
+        ${item.value === selectedConnectivity ? "selected" : ""}>
+        ${item.label}
+      </option>
+    `;
+  });
+
+  html += `
     </select>
     <div id="credFields" style="margin-top:14px;"></div>
   `;
+
+  box.innerHTML = html;
+
   renderCredFields();
 }
 
@@ -52,133 +119,187 @@ function onConnectivityChange(val) {
   renderCredFields();
 }
 
-function saveCreds() {
-  window._cfg.ssid       = document.getElementById("wifiSSID")?.value   || window._cfg.ssid   || "";
-  window._cfg.pass       = document.getElementById("wifiPass")?.value   || window._cfg.pass   || "";
-  window._cfg.mqttBroker = document.getElementById("mqttBroker")?.value || window._cfg.mqttBroker || "192.168.31.159";
-  window._cfg.mqttPort   = document.getElementById("mqttPort")?.value   || window._cfg.mqttPort   || "1883";
-  window._cfg.mqttUser   = document.getElementById("mqttUser")?.value   || window._cfg.mqttUser   || "testauto";
-  window._cfg.mqttPass   = document.getElementById("mqttPass")?.value   || window._cfg.mqttPass   || "1234";
-  window._cfg.fbURL      = document.getElementById("fbURL")?.value      || window._cfg.fbURL      || FIREBASE_BASE_URL;
-  window._cfg.fbSecret   = document.getElementById("fbSecret")?.value   || window._cfg.fbSecret   || "";
-}
-
 function renderCredFields() {
-  let box = document.getElementById("credFields");
+  const box = document.getElementById("credFields");
   if (!box) return;
 
-  let c = selectedConnectivity;
-  let cfg = window._cfg;
+  const cfg = window._cfg;
+
   let html = `
-    <label>WiFi SSID &amp; Password</label>
-    <div class="grid2" style="margin-bottom:12px;">
-      <input id="wifiSSID" placeholder="WiFi SSID" value="${cfg.ssid || "Raavinewairtel"}">
-      <input id="wifiPass" placeholder="WiFi Password" type="password" value="${cfg.pass || "12345678"}">
+    <label>WiFi</label>
+    <div class="grid2">
+      <input id="wifiSSID" placeholder="WiFi Name"
+        value="${cfg.ssid || ""}">
+      <input id="wifiPass" type="password"
+        placeholder="WiFi Password"
+        value="${cfg.pass || ""}">
     </div>
   `;
 
-  if (c === "MQTT" || c === "Both") {
+  if (
+    selectedConnectivity === "MQTT" ||
+    selectedConnectivity === "Both"
+  ) {
     html += `
-      <label>MQTT Broker</label>
-      <div class="grid2" style="margin-bottom:12px;">
-        <input id="mqttBroker" placeholder="Broker IP / Host" value="${cfg.mqttBroker || "192.168.31.159"}">
-        <input id="mqttPort" placeholder="Port" value="${cfg.mqttPort || "1883"}">
+      <label>MQTT</label>
+      <div class="grid2">
+        <input id="mqttBroker" placeholder="Broker"
+          value="${cfg.mqttBroker || "broker.emqx.io"}">
+        <input id="mqttPort" placeholder="Port"
+          value="${cfg.mqttPort || "1883"}">
       </div>
-      <div class="grid2" style="margin-bottom:12px;">
-        <input id="mqttUser" placeholder="MQTT Username" value="${cfg.mqttUser || "testauto"}">
-        <input id="mqttPass" placeholder="MQTT Password" type="password" value="${cfg.mqttPass || "1234"}">
+
+      <div class="grid2">
+        <input id="mqttUser" placeholder="Username"
+          value="${cfg.mqttUser || ""}">
+        <input id="mqttPass" type="password"
+          placeholder="Password"
+          value="${cfg.mqttPass || ""}">
       </div>
     `;
   }
 
-  if (c === "Firebase" || c === "Both") {
+  if (
+    selectedConnectivity === "Firebase" ||
+    selectedConnectivity === "Both"
+  ) {
     html += `
-      <label>Firebase Config</label>
-      <div style="margin-bottom:12px;">
-        <input id="fbURL" placeholder="Firebase Realtime DB URL" value="${cfg.fbURL || FIREBASE_BASE_URL}">
-      </div>
-      <div style="margin-bottom:12px;">
-        <input id="fbSecret" placeholder="Firebase API Key / DB Secret" value="${cfg.fbSecret || ""}">
-      </div>
+      <label>Firebase</label>
+      <input id="fbURL"
+        value="${cfg.fbURL || FIREBASE_BASE_URL}">
+      <input id="fbSecret"
+        placeholder="Secret / API Key"
+        value="${cfg.fbSecret || ""}">
     `;
   }
+
   box.innerHTML = html;
 }
 
-/* ─── ROLE & UI RENDERING ────────────────────── */
+function saveCreds() {
+  window._cfg.ssid =
+    document.getElementById("wifiSSID")?.value || "";
+
+  window._cfg.pass =
+    document.getElementById("wifiPass")?.value || "";
+
+  window._cfg.mqttBroker =
+    document.getElementById("mqttBroker")?.value ||
+    "broker.emqx.io";
+
+  window._cfg.mqttPort =
+    document.getElementById("mqttPort")?.value ||
+    "1883";
+
+  window._cfg.mqttUser =
+    document.getElementById("mqttUser")?.value || "";
+
+  window._cfg.mqttPass =
+    document.getElementById("mqttPass")?.value || "";
+
+  window._cfg.fbURL =
+    document.getElementById("fbURL")?.value ||
+    FIREBASE_BASE_URL;
+
+  window._cfg.fbSecret =
+    document.getElementById("fbSecret")?.value || "";
+}
+
+/* ─────────────────────────────────────────────
+   ROLE
+───────────────────────────────────────────── */
 function setRole(role) {
   selectedRole = role;
-  document.getElementById("roleInfo").innerText = "Selected: " + role;
-  document.getElementById("motherPanel").style.display = "block";
+
+  document.getElementById("roleInfo").innerText =
+    "Selected: " + role;
+
+  document.getElementById("motherPanel").style.display =
+    "block";
+
   renderTopPanel();
 }
 
-function boardOptionsHTML(selectedBoard) {
-  return BOARDS.map(b => `<option value="${b}" ${b === selectedBoard ? "selected" : ""}>${b}</option>`).join("");
-}
-
-function roomOptionsHTML(exclude) {
-  return ROOMS_LIST.filter(r => !exclude.includes(r)).map(r => `<option value="${r}">${r}</option>`).join("");
-}
-
+/* ─────────────────────────────────────────────
+   PANEL
+───────────────────────────────────────────── */
 function renderTopPanel() {
-  let boardSelectEl = document.getElementById("boardSelect");
-  let currentBoard = boardSelectEl ? boardSelectEl.value : BOARDS[0];
-  let usedRooms = rooms.map(r => r.room);
-  let availRooms = roomOptionsHTML(usedRooms);
+  const usedRooms = rooms.map(r => r.room);
+
+  const availableRooms = ROOMS_LIST.filter(
+    room => !usedRooms.includes(room)
+  );
+
   let html = "";
 
-  if (selectedRole === "Child Node") {
-    html += `<label>Select Mother Device Name</label><select id="childBoard">${boardOptionsHTML(currentBoard)}</select>`;
-  } else if (selectedRole === "Mother Hub") {
-    html += `<label>Select Child Device Name</label><select id="childBoard">${boardOptionsHTML(currentBoard)}</select>`;
-  }
-
-  if (availRooms === "") {
-    html += `<div class="info" style="margin-top:14px;">✅ All rooms added!</div>`;
+  if (availableRooms.length === 0) {
+    html += `<div class="info">All rooms added</div>`;
   } else {
     html += `
-      <label>Select Room Name</label>
-      <select id="childRoom">${availRooms}</select>
+      <label>Select Room</label>
+      <select id="childRoom">
+        ${availableRooms
+          .map(r => `<option>${r}</option>`)
+          .join("")}
+      </select>
+
       <label>Relay Count</label>
       <select id="relayCount"></select>
+
       <br><br>
-      <button onclick="addChildRoom()">Add Room</button>
+      <button onclick="addChildRoom()">
+        + Add Room
+      </button>
     `;
   }
 
   html += `<div id="childRoomsBox"></div>`;
-  document.getElementById("motherPanel").innerHTML = html;
+
+  document.getElementById("motherPanel").innerHTML =
+    html;
+
   loadRelayCount();
   renderRooms();
 }
 
 function loadRelayCount() {
-  let sel = document.getElementById("relayCount");
+  const sel = document.getElementById("relayCount");
   if (!sel) return;
+
   sel.innerHTML = "";
-  for (let i = 1; i <= 32; i++) sel.innerHTML += `<option value="${i}">${i}</option>`;
+
+  for (let i = 1; i <= 32; i++) {
+    sel.innerHTML += `
+      <option value="${i}">${i}</option>
+    `;
+  }
 }
 
+/* ─────────────────────────────────────────────
+   ROOM ADD
+───────────────────────────────────────────── */
 function addChildRoom() {
-  let board = document.getElementById("boardSelect").value;
-  let roomEl = document.getElementById("childRoom");
-  if (!roomEl) return;
-  let room = roomEl.value;
-  let relays = parseInt(document.getElementById("relayCount").value);
+  const room =
+    document.getElementById("childRoom").value;
 
-  if (rooms.find(r => r.room === room)) {
-    alert(`"${room}" already added!`);
-    return;
-  }
-  
-  let isESP32S3orWROVER = board.includes("ESP32-S3") || board.includes("ESP32-WROVER");
-  let defaultPin = isESP32S3orWROVER ? "1" : "D1";
-  
-  let defaultPins = Array(relays).fill(defaultPin);
-  let defaultDevices = Array(relays).fill("Fan");
+  const board =
+    document.getElementById("boardSelect").value;
 
-  rooms.push({ board, room, relays, pins: defaultPins, devices: defaultDevices });
+  const relays = parseInt(
+    document.getElementById("relayCount").value
+  );
+
+  const pins = Array(relays).fill("1");
+  const devices = Array(relays).fill("Light");
+
+  rooms.push({
+    room,
+    board,
+    relays,
+    pins,
+    devices
+  });
+
   renderTopPanel();
 }
 
@@ -187,136 +308,155 @@ function removeRoom(index) {
   renderTopPanel();
 }
 
+/* ─────────────────────────────────────────────
+   ROOM RENDER
+───────────────────────────────────────────── */
 function renderRooms() {
-  let box = document.getElementById("childRoomsBox");
+  const box = document.getElementById(
+    "childRoomsBox"
+  );
+
   if (!box) return;
-  if (rooms.length === 0) { box.innerHTML = ""; return; }
 
-  box.innerHTML = `<h2 style="margin-top:20px;">Added Rooms (${rooms.length})</h2>`;
-
-  rooms.forEach((r, index) => {
-    let isChild = selectedRole === "Child Node";
-    box.innerHTML += `
-      <div class="card" style="margin-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h2>${r.room}</h2>
-          <button onclick="removeRoom(${index})">✕ Remove</button>
-        </div>
-        ${selectedRole !== "Hybrid" ? `
-          <label>${isChild ? "Mother Device" : "Child Device"}</label>
-          <select ${isChild ? "disabled" : ""} onchange="changeBoard(${index}, this.value)">
-            ${boardOptionsHTML(r.board)}
-          </select>
-        ` : ""}
-        <div class="info" style="margin-bottom:8px;">Relays: ${r.relays}</div>
-        ${makeRelayInputs(r.board, r.relays, index)}
-      </div>
-    `;
-  });
-}
-
-function changeBoard(index, val) {
-  rooms[index].board = val;
-  let isESP32S3orWROVER = val.includes("ESP32-S3") || val.includes("ESP32-WROVER");
-  let defaultPin = isESP32S3orWROVER ? "1" : "D1";
-  rooms[index].pins = Array(rooms[index].relays).fill(defaultPin);
-  renderRooms();
-}
-
-function makeRelayInputs(board, total, roomIndex) {
-  let html = `<div style="margin-top:10px;">`;
-  let currentPins = rooms[roomIndex].pins;
-  let currentDevices = rooms[roomIndex].devices;
-
-  for (let i = 1; i <= total; i++) {
-    html += `
-      <div class="grid3" style="margin-bottom:8px;">
-        <select><option>IN${i}</option></select>
-        <select onchange="savePin(${roomIndex},${i-1},this.value)">${pinOptions(board, currentPins[i-1])}</select>
-        <select onchange="saveDevice(${roomIndex},${i-1},this.value)">
-          ${deviceOptions(currentDevices[i-1])}
-        </select>
-      </div>
-    `;
-  }
-  html += `</div>`;
-  return html;
-}
-
-function savePin(ri, idx, val) { rooms[ri].pins[idx] = val; }
-function saveDevice(ri, idx, val) { rooms[ri].devices[idx] = val; }
-
-function pinOptions(board, selectedPin) {
-  let isESP32S3orWROVER = board.includes("ESP32-S3") || board.includes("ESP32-WROVER");
-  let html = "";
-  if (isESP32S3orWROVER) {
-    for (let i = 1; i <= 100; i++) {
-      let val = i.toString();
-      html += `<option value="${val}" ${val === selectedPin ? "selected" : ""}>${val}</option>`;
-    }
-  } else {
-    for (let i = 1; i <= 100; i++) {
-      let val = `D${i}`;
-      html += `<option value="${val}" ${val === selectedPin ? "selected" : ""}>${val}</option>`;
-    }
-  }
-  return html;
-}
-
-function deviceOptions(selectedDev) {
-  const devs = ["Fan", "AC", "Light", "Ceiling Light", "Main Fan", "Socket", "Exhaust Fan", "Geyser", "TV Point", "Night Light", "Bed Light", "Study Light"];
-  return devs.map(d => `<option value="${d}" ${d === selectedDev ? "selected" : ""}>${d}</option>`).join("");
-}
-
-function getCredentials() {
-  saveCreds();
-  return { ...window._cfg, connectivity: selectedConnectivity };
-}
-
-/* ─── BUILD & FIREBASE CLOUD SYNC ────────────── */
-async function buildNow() {
   if (rooms.length === 0) {
-    alert("Please add at least one room before building.");
+    box.innerHTML = "";
     return;
   }
 
-  let payload = {
+  let html = `
+    <h2 style="margin-top:20px;">
+      Added Rooms
+    </h2>
+  `;
+
+  rooms.forEach((roomObj, roomIndex) => {
+    html += `
+      <div class="card" style="margin-top:12px;">
+
+        <div class="room-head">
+          <h2>${roomObj.room}</h2>
+
+          <button onclick="removeRoom(${roomIndex})">
+            Remove
+          </button>
+        </div>
+
+        <div class="info">
+          Relays: ${roomObj.relays}
+        </div>
+    `;
+
+    for (let i = 0; i < roomObj.relays; i++) {
+      html += `
+        <div class="grid3">
+
+          <select>
+            <option>IN${i + 1}</option>
+          </select>
+
+          <select onchange="
+            savePin(${roomIndex},${i},this.value)
+          ">
+            ${pinOptions(roomObj.pins[i])}
+          </select>
+
+          <select onchange="
+            saveDevice(${roomIndex},${i},this.value)
+          ">
+            ${deviceOptions(roomObj.devices[i])}
+          </select>
+
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+  });
+
+  box.innerHTML = html;
+}
+
+function pinOptions(selected) {
+  let html = "";
+
+  for (let i = 1; i <= 48; i++) {
+    html += `
+      <option value="${i}"
+        ${selected == i ? "selected" : ""}>
+        ${i}
+      </option>
+    `;
+  }
+
+  return html;
+}
+
+function deviceOptions(selected) {
+  return DEVICE_LIST.map(
+    d => `
+      <option value="${d}"
+        ${selected === d ? "selected" : ""}>
+        ${d}
+      </option>
+    `
+  ).join("");
+}
+
+function savePin(roomIndex, relayIndex, val) {
+  rooms[roomIndex].pins[relayIndex] = val;
+}
+
+function saveDevice(roomIndex, relayIndex, val) {
+  rooms[roomIndex].devices[relayIndex] = val;
+}
+
+/* ─────────────────────────────────────────────
+   FIREBASE SAVE
+───────────────────────────────────────────── */
+async function buildNow() {
+  if (rooms.length === 0) {
+    alert("Add at least one room");
+    return;
+  }
+
+  saveCreds();
+
+  const payload = {
     role: selectedRole,
     connectivity: selectedConnectivity,
-    credentials: getCredentials(),
+    credentials: window._cfg,
     rooms: rooms,
     lastUpdated: new Date().toISOString()
   };
 
-  let logBox = document.getElementById("log");
-  logBox.className = "log"; 
-  logBox.innerText = "⏳ Pushing configuration to Singapore Cloud...";
+  const log = document.getElementById("log");
 
-  let firebaseURL = `${FIREBASE_BASE_URL}/mos_config.json`;
+  log.className = "log";
+  log.innerText = "Saving to Cloud...";
 
   try {
-    let res = await fetch(firebaseURL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    const res = await fetch(
+      `${FIREBASE_BASE_URL}/mos_config.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
 
     if (res.ok) {
-      logBox.className = "log"; 
-      logBox.innerText = "✅ SUCCESS: Config saved to projectm-chinna!\nESP32 will sync now.";
+      log.innerText =
+        "SUCCESS: Config saved to Firebase.";
     } else {
-      let err = await res.text();
-      logBox.className = "log error"; 
-      logBox.innerText = "❌ Firebase Error: " + err;
+      log.className = "log error";
+      log.innerText =
+        "Firebase Error.";
     }
   } catch (e) {
-    logBox.className = "log error"; 
-    logBox.innerText = "❌ Network Error: Check internet connection.";
+    log.className = "log error";
+    log.innerText =
+      "Network Error.";
   }
 }
-
-/* ─── INITIALIZE ─────────────────────────────── */
-window.onload = () => {
-  renderConnectivityDropdown();
-  setRole("Mother Hub");
-};

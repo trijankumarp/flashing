@@ -20,29 +20,26 @@
 
 static const char *TAG = "M-OS";
 
-/* ================================
-   FIREBASE CONFIG
-================================ */
-#define FIREBASE_URL "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app/mos_config.json"
+/* ================= FIREBASE ================= */
+#define FIREBASE_CONFIG_URL  "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app/mos_config.json"
+#define FIREBASE_CMD_URL     "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app/commands/latest.json"
 
-/* ================================
-   DEFAULT WIFI (fallback only)
-================================ */
+/* ============== DEFAULT WIFI ============== */
 #define DEFAULT_WIFI_SSID "M-OS"
 #define DEFAULT_WIFI_PASS "12345678"
 
-/* ================================
-   GLOBAL BUFFERS
-================================ */
+/* ============== GLOBALS ============== */
 static char wifi_ssid[64] = DEFAULT_WIFI_SSID;
 static char wifi_pass[64] = DEFAULT_WIFI_PASS;
 
 static char http_buffer[8192];
 static int http_len = 0;
 
-/* =====================================================
-   NVS SAVE / LOAD WIFI
-===================================================== */
+static cJSON *g_root = NULL;
+
+/* ========================================= */
+/* NVS WIFI                                  */
+/* ========================================= */
 void load_wifi_from_nvs()
 {
     nvs_handle_t nvs;
@@ -57,11 +54,7 @@ void load_wifi_from_nvs()
         nvs_get_str(nvs, "pass", wifi_pass, &len);
 
         nvs_close(nvs);
-        ESP_LOGI(TAG, "Loaded WiFi from NVS");
-    }
-    else
-    {
-        ESP_LOGW(TAG, "Using default WiFi");
+        ESP_LOGI(TAG, "WiFi loaded from NVS");
     }
 }
 
@@ -76,13 +69,13 @@ void save_wifi_to_nvs(const char *ssid, const char *pass)
         nvs_commit(nvs);
         nvs_close(nvs);
 
-        ESP_LOGI(TAG, "WiFi saved to NVS");
+        ESP_LOGI(TAG, "WiFi saved");
     }
 }
 
-/* =====================================================
-   WIFI EVENTS
-===================================================== */
+/* ========================================= */
+/* WIFI                                      */
+/* ========================================= */
 static void wifi_event_handler(void *arg,
                                esp_event_base_t event_base,
                                int32_t event_id,
@@ -140,30 +133,29 @@ void wifi_init_sta()
     esp_wifi_start();
 }
 
-/* =====================================================
-   RELAY CONFIG
-===================================================== */
-void setup_gpio_pin(int pin)
+/* ========================================= */
+/* GPIO                                      */
+/* ========================================= */
+void setup_pin(int pin)
 {
-    if (pin <= 0)
-        return;
+    if (pin <= 0) return;
 
     gpio_reset_pin(pin);
     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
     gpio_set_level(pin, 0);
 }
 
+/* ========================================= */
+/* ROOM CONFIG                               */
+/* ========================================= */
 void configure_rooms(cJSON *rooms)
 {
     int room_count = cJSON_GetArraySize(rooms);
 
-    ESP_LOGI(TAG, "Rooms Found: %d", room_count);
-
     for (int r = 0; r < room_count; r++)
     {
         cJSON *room = cJSON_GetArrayItem(rooms, r);
-        if (!room)
-            continue;
+        if (!room) continue;
 
         cJSON *room_name = cJSON_GetObjectItem(room, "room");
         cJSON *pins = cJSON_GetObjectItem(room, "pins");
@@ -175,9 +167,9 @@ void configure_rooms(cJSON *rooms)
 
         if (pins && cJSON_IsArray(pins))
         {
-            int relay_count = cJSON_GetArraySize(pins);
+            int count = cJSON_GetArraySize(pins);
 
-            for (int i = 0; i < relay_count; i++)
+            for (int i = 0; i < count; i++)
             {
                 cJSON *pin = cJSON_GetArrayItem(pins, i);
 
@@ -189,37 +181,39 @@ void configure_rooms(cJSON *rooms)
                 if (cJSON_IsString(pin))
                     gpio_num = atoi(pin->valuestring);
 
-                setup_gpio_pin(gpio_num);
+                setup_pin(gpio_num);
 
-                ESP_LOGI(TAG,
-                         "Relay %d -> GPIO %d",
-                         i + 1,
-                         gpio_num);
+                ESP_LOGI(TAG, "Relay %d -> GPIO %d", i + 1, gpio_num);
             }
         }
     }
 }
 
-/* =====================================================
-   JSON PARSER
-===================================================== */
-void parse_cloud_json(const char *json)
+/* ========================================= */
+/* CONFIG JSON                               */
+/* ========================================= */
+void parse_config_json(const char *json)
 {
-    cJSON *root = cJSON_Parse(json);
-
-    if (!root)
+    if (g_root)
     {
-        ESP_LOGE(TAG, "JSON Parse Failed");
+        cJSON_Delete(g_root);
+        g_root = NULL;
+    }
+
+    g_root = cJSON_Parse(json);
+
+    if (!g_root)
+    {
+        ESP_LOGE(TAG, "Config JSON parse fail");
         return;
     }
 
-    /* WiFi from cloud */
-    cJSON *cred = cJSON_GetObjectItem(root, "credentials");
+    cJSON *credentials = cJSON_GetObjectItem(g_root, "credentials");
 
-    if (cred)
+    if (credentials)
     {
-        cJSON *ssid = cJSON_GetObjectItem(cred, "ssid");
-        cJSON *pass = cJSON_GetObjectItem(cred, "pass");
+        cJSON *ssid = cJSON_GetObjectItem(credentials, "ssid");
+        cJSON *pass = cJSON_GetObjectItem(credentials, "pass");
 
         if (ssid && pass &&
             cJSON_IsString(ssid) &&
@@ -232,94 +226,197 @@ void parse_cloud_json(const char *json)
         }
     }
 
-    /* Rooms */
-    cJSON *rooms = cJSON_GetObjectItem(root, "rooms");
+    cJSON *rooms = cJSON_GetObjectItem(g_root, "rooms");
 
     if (rooms && cJSON_IsArray(rooms))
     {
         configure_rooms(rooms);
     }
+}
+
+/* ========================================= */
+/* COMMAND ENGINE                            */
+/* ========================================= */
+int find_pin(const char *room_name, const char *device_name)
+{
+    if (!g_root) return -1;
+
+    cJSON *rooms = cJSON_GetObjectItem(g_root, "rooms");
+    if (!rooms) return -1;
+
+    int total_rooms = cJSON_GetArraySize(rooms);
+
+    for (int r = 0; r < total_rooms; r++)
+    {
+        cJSON *room = cJSON_GetArrayItem(rooms, r);
+
+        cJSON *roomItem = cJSON_GetObjectItem(room, "room");
+        cJSON *devices  = cJSON_GetObjectItem(room, "devices");
+        cJSON *pins     = cJSON_GetObjectItem(room, "pins");
+
+        if (!roomItem || !devices || !pins) continue;
+
+        if (strcasecmp(roomItem->valuestring, room_name) == 0)
+        {
+            int count = cJSON_GetArraySize(devices);
+
+            for (int i = 0; i < count; i++)
+            {
+                cJSON *dev = cJSON_GetArrayItem(devices, i);
+
+                if (dev && cJSON_IsString(dev))
+                {
+                    if (strcasecmp(dev->valuestring, device_name) == 0)
+                    {
+                        cJSON *pin = cJSON_GetArrayItem(pins, i);
+
+                        if (cJSON_IsNumber(pin))
+                            return pin->valueint;
+
+                        if (cJSON_IsString(pin))
+                            return atoi(pin->valuestring);
+                    }
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+void execute_command(const char *room,
+                     const char *device,
+                     const char *action)
+{
+    int pin = find_pin(room, device);
+
+    if (pin < 0)
+    {
+        ESP_LOGW(TAG, "Device not found");
+        return;
+    }
+
+    if (strcasecmp(action, "ON") == 0)
+    {
+        gpio_set_level(pin, 1);
+    }
+    else if (strcasecmp(action, "OFF") == 0)
+    {
+        gpio_set_level(pin, 0);
+    }
+    else if (strcasecmp(action, "TOGGLE") == 0)
+    {
+        gpio_set_level(pin, !gpio_get_level(pin));
+    }
+    else if (strcasecmp(action, "RING") == 0)
+    {
+        gpio_set_level(pin, 1);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        gpio_set_level(pin, 0);
+    }
+
+    ESP_LOGI(TAG, "Executed: %s | %s | %s",
+             room, device, action);
+}
+
+void parse_command_json(const char *json)
+{
+    cJSON *root = cJSON_Parse(json);
+    if (!root) return;
+
+    cJSON *room   = cJSON_GetObjectItem(root, "room");
+    cJSON *device = cJSON_GetObjectItem(root, "device");
+    cJSON *action = cJSON_GetObjectItem(root, "action");
+
+    if (room && device && action)
+    {
+        execute_command(room->valuestring,
+                        device->valuestring,
+                        action->valuestring);
+    }
 
     cJSON_Delete(root);
 }
 
-/* =====================================================
-   HTTP EVENTS
-===================================================== */
+/* ========================================= */
+/* HTTP GET                                  */
+/* ========================================= */
 esp_err_t http_event_handler(esp_http_client_event_t *evt)
 {
     switch (evt->event_id)
     {
-    case HTTP_EVENT_ON_DATA:
+        case HTTP_EVENT_ON_DATA:
 
-        if (!esp_http_client_is_chunked_response(evt->client))
-        {
-            if ((http_len + evt->data_len) < sizeof(http_buffer))
+            if (!esp_http_client_is_chunked_response(evt->client))
             {
-                memcpy(http_buffer + http_len,
-                       evt->data,
-                       evt->data_len);
+                if ((http_len + evt->data_len) < sizeof(http_buffer))
+                {
+                    memcpy(http_buffer + http_len,
+                           evt->data,
+                           evt->data_len);
 
-                http_len += evt->data_len;
-                http_buffer[http_len] = 0;
+                    http_len += evt->data_len;
+                    http_buffer[http_len] = 0;
+                }
             }
-        }
 
-        break;
+            break;
 
-    case HTTP_EVENT_ON_FINISH:
-
-        parse_cloud_json(http_buffer);
-        http_len = 0;
-        memset(http_buffer, 0, sizeof(http_buffer));
-
-        break;
-
-    default:
-        break;
+        default:
+            break;
     }
 
     return ESP_OK;
 }
 
-/* =====================================================
-   FIREBASE TASK
-===================================================== */
-void firebase_task(void *pv)
+void http_get_json(const char *url)
 {
-    esp_http_client_config_t config = {
-        .url = FIREBASE_URL,
-        .event_handler = http_event_handler,
-        .timeout_ms = 8000};
+    http_len = 0;
+    memset(http_buffer, 0, sizeof(http_buffer));
 
+    esp_http_client_config_t config = {
+        .url = url,
+        .event_handler = http_event_handler,
+        .timeout_ms = 8000
+    };
+
+    esp_http_client_handle_t client =
+        esp_http_client_init(&config);
+
+    esp_http_client_perform(client);
+    esp_http_client_cleanup(client);
+}
+
+/* ========================================= */
+/* TASKS                                     */
+/* ========================================= */
+void config_task(void *pv)
+{
     while (1)
     {
-        ESP_LOGI(TAG, "Syncing Cloud...");
+        http_get_json(FIREBASE_CONFIG_URL);
+        parse_config_json(http_buffer);
 
-        esp_http_client_handle_t client =
-            esp_http_client_init(&config);
-
-        esp_err_t err =
-            esp_http_client_perform(client);
-
-        if (err == ESP_OK)
-        {
-            ESP_LOGI(TAG, "Cloud Sync OK");
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Cloud Sync Fail");
-        }
-
-        esp_http_client_cleanup(client);
+        ESP_LOGI(TAG, "Config Synced");
 
         vTaskDelay(pdMS_TO_TICKS(15000));
     }
 }
 
-/* =====================================================
-   MAIN
-===================================================== */
+void command_task(void *pv)
+{
+    while (1)
+    {
+        http_get_json(FIREBASE_CMD_URL);
+        parse_command_json(http_buffer);
+
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+}
+
+/* ========================================= */
+/* MAIN                                      */
+/* ========================================= */
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -339,10 +436,6 @@ void app_main(void)
 
     vTaskDelay(pdMS_TO_TICKS(5000));
 
-    xTaskCreate(firebase_task,
-                "firebase_task",
-                8192,
-                NULL,
-                5,
-                NULL);
+    xTaskCreate(config_task, "config_task", 8192, NULL, 5, NULL);
+    xTaskCreate(command_task, "command_task", 8192, NULL, 5, NULL);
 }

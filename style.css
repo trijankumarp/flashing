@@ -7,12 +7,12 @@
 
 body {
   background: #050505;
-  color: #fff;
+  color: #ffffff;
   padding: 30px;
 }
 
 .wrap {
-  max-width: 1100px;
+  max-width: 1150px;
   margin: auto;
 }
 
@@ -31,7 +31,7 @@ h2 {
 
 .subtitle {
   font-size: 13px;
-  color: #aaa;
+  color: #a9a9a9;
   margin-bottom: 15px;
 }
 
@@ -39,7 +39,8 @@ label {
   display: block;
   margin-top: 14px;
   margin-bottom: 8px;
-  color: #cfcfcf;
+  color: #d0d0d0;
+  font-size: 14px;
 }
 
 .row {
@@ -56,38 +57,41 @@ label {
 
 .grid3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 110px 1fr 1fr;
   gap: 10px;
   margin-top: 10px;
 }
 
-input, select {
+input,
+select,
+textarea {
   width: 100%;
   min-height: 46px;
   background: #08080a;
   border: 1px solid #2b2b3a;
   border-radius: 12px;
   padding: 10px 14px;
-  color: #fff;
+  color: #ffffff;
   font-size: 15px;
   outline: none;
   transition: 0.2s;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: #e53935;
 }
 
-/* Standard Buttons */
+/* BUTTONS */
 button {
-  height: 40px; 
-  padding: 0 16px; 
+  height: 42px;
+  padding: 0 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #ffffff;
   color: #000000;
-  font-size: 14px; 
-  font-weight: normal; 
+  font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
 }
@@ -96,7 +100,7 @@ button:hover {
   background: #dddddd;
 }
 
-/* Ensure the 'Remove Room' button stays red and small */
+/* REMOVE BUTTON */
 button[onclick^="removeRoom"] {
   background: #e53935 !important;
   color: #ffffff !important;
@@ -104,37 +108,44 @@ button[onclick^="removeRoom"] {
   padding: 0 12px;
 }
 
-/* ESP Web Install Button Override */
+/* ROLE BUTTON ACTIVE LOOK */
+.role-active {
+  background: #e53935 !important;
+  color: #ffffff !important;
+}
+
+/* INSTALL BUTTON */
 esp-web-install-button {
   --esp-tools-button-color: #ffffff;
   --esp-tools-button-text-color: #000000;
-  --esp-tools-button-border-radius: 8px;
+  --esp-tools-button-border-radius: 10px;
 }
 
 esp-web-install-button::part(button) {
-  height: 40px; 
-  padding: 0 16px; 
+  height: 42px;
+  padding: 0 16px;
   border: none;
-  font-size: 14px; 
-  font-weight: normal;
+  font-size: 14px;
 }
 
+/* INFO */
 .info {
   margin-top: 14px;
   color: #e53935;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
 }
 
+/* PANELS */
 .hidden-panel {
   display: none;
   margin-top: 20px;
 }
 
-/* Logs Base styling */
+/* LOG */
 .log {
   margin-top: 14px;
-  background: #000;
+  background: #000000;
   color: #00ff66;
   padding: 14px;
   border-radius: 12px;
@@ -145,7 +156,53 @@ esp-web-install-button::part(button) {
   font-size: 14px;
 }
 
-/* Error styling */
 .log.error {
   color: #e53935;
+}
+
+/* ROOM TITLE BAR */
+.room-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* SMALL TEXT */
+.small {
+  font-size: 12px;
+  color: #9a9a9a;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  button,
+  esp-web-install-button::part(button) {
+    width: 100%;
+  }
+
+  body {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  h2 {
+    font-size: 19px;
+  }
 }
