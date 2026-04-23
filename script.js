@@ -172,7 +172,6 @@ function addChildRoom() {
     return;
   }
   
-  // Set default values immediately so they aren't empty if user ignores dropdowns
   let isESP32S3orWROVER = board.includes("ESP32-S3") || board.includes("ESP32-WROVER");
   let defaultPin = isESP32S3orWROVER ? "1" : "D1";
   
@@ -201,7 +200,7 @@ function renderRooms() {
       <div class="card" style="margin-top:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <h2>${r.room}</h2>
-          <button onclick="removeRoom(${index})" style="background:#e53935;color:#fff;padding:0 14px;height:36px;font-size:13px;min-width:auto;">✕ Remove</button>
+          <button onclick="removeRoom(${index})">✕ Remove</button>
         </div>
         ${selectedRole !== "Hybrid" ? `
           <label>${isChild ? "Mother Device" : "Child Device"}</label>
@@ -218,7 +217,6 @@ function renderRooms() {
 
 function changeBoard(index, val) {
   rooms[index].board = val;
-  // Reset default pins when board changes to ensure compatibility 
   let isESP32S3orWROVER = val.includes("ESP32-S3") || val.includes("ESP32-WROVER");
   let defaultPin = isESP32S3orWROVER ? "1" : "D1";
   rooms[index].pins = Array(rooms[index].relays).fill(defaultPin);
@@ -304,15 +302,15 @@ async function buildNow() {
     });
 
     if (res.ok) {
-      logBox.className = "log"; // Standard styling (Green text)
+      logBox.className = "log"; 
       logBox.innerText = "✅ SUCCESS: Config saved to projectm-chinna!\nESP32 will sync now.";
     } else {
       let err = await res.text();
-      logBox.className = "log error"; // Triggers CSS .error class (Red text)
+      logBox.className = "log error"; 
       logBox.innerText = "❌ Firebase Error: " + err;
     }
   } catch (e) {
-    logBox.className = "log error"; // Triggers CSS .error class (Red text)
+    logBox.className = "log error"; 
     logBox.innerText = "❌ Network Error: Check internet connection.";
   }
 }

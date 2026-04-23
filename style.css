@@ -24,11 +24,6 @@ body {
   margin-bottom: 18px;
 }
 
-/* Flasher Top Card Highlight */
-.flasher-card {
-  border: 2px solid #e53935;
-}
-
 h2 {
   font-size: 22px;
   margin-bottom: 14px;
@@ -66,7 +61,6 @@ label {
   margin-top: 10px;
 }
 
-/* Inputs & Selects - Adjusted min-height and padding to prevent overlap */
 input, select {
   width: 100%;
   min-height: 46px;
@@ -84,17 +78,16 @@ input:focus, select:focus {
   border-color: #e53935;
 }
 
-/* Standard Buttons - Forced White background, Black text, consistent size */
+/* Standard Buttons */
 button {
-  height: 46px;
-  min-width: 120px;
-  padding: 0 20px;
+  height: 40px; 
+  padding: 0 16px; 
   border: none;
   border-radius: 8px;
   background: #ffffff;
   color: #000000;
-  font-size: 15px;
-  font-weight: bold;
+  font-size: 14px; 
+  font-weight: normal; 
   cursor: pointer;
   transition: 0.2s;
 }
@@ -103,14 +96,15 @@ button:hover {
   background: #dddddd;
 }
 
-/* Ensure the 'Remove Room' button stays red */
+/* Ensure the 'Remove Room' button stays red and small */
 button[onclick^="removeRoom"] {
   background: #e53935 !important;
   color: #ffffff !important;
-  min-width: auto;
+  height: 36px;
+  padding: 0 12px;
 }
 
-/* ESP Web Install Button - Overriding the default blue component */
+/* ESP Web Install Button Override */
 esp-web-install-button {
   --esp-tools-button-color: #ffffff;
   --esp-tools-button-text-color: #000000;
@@ -118,12 +112,11 @@ esp-web-install-button {
 }
 
 esp-web-install-button::part(button) {
-  height: 46px;
-  min-width: 120px;
-  padding: 0 20px;
+  height: 40px; 
+  padding: 0 16px; 
   border: none;
-  font-size: 15px;
-  font-weight: bold;
+  font-size: 14px; 
+  font-weight: normal;
 }
 
 .info {
@@ -138,7 +131,7 @@ esp-web-install-button::part(button) {
   margin-top: 20px;
 }
 
-/* Logs Base styling - Default is Green for Success/Ready */
+/* Logs Base styling */
 .log {
   margin-top: 14px;
   background: #000;
@@ -152,7 +145,7 @@ esp-web-install-button::part(button) {
   font-size: 14px;
 }
 
-/* Error styling - Applied via JS when Firebase fails */
+/* Error styling */
 .log.error {
   color: #e53935;
 }
