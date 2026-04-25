@@ -1,27 +1,15 @@
 {
-  "name": "Project M Universal Firmware",
+  "name": "Project-M Chinna AI",
   "version": "1.0.0",
+  "home_assistant_domain": "esphome",
+  "new_install_prompt_erase": true,
   "builds": [
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "bootloader.bin", "offset": 0 },
-        { "path": "partition-table.bin", "offset": 32768 },
-        { "path": "esp_firmware.bin", "offset": 65536 }
-      ]
-    },
-    {
-      "chipFamily": "ESP32",
-      "parts": [
-        { "path": "bootloader.bin", "offset": 4096 },
-        { "path": "partition-table.bin", "offset": 32768 },
-        { "path": "esp_firmware.bin", "offset": 65536 }
-      ]
-    },
-    {
-      "chipFamily": "ESP8266",
-      "parts": [
-        { "path": "esp_firmware.bin", "offset": 0 }
+        { "path": "firmware/bootloader.bin", "offset": 0 },
+        { "path": "firmware/partition-table.bin", "offset": 32768 },
+        { "path": "firmware/esp_firmware.bin", "offset": 65536 }
       ]
     }
   ]

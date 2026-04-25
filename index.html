@@ -1,109 +1,266 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="te">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M-OS Company Flasher</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0a0a0a; color:#e0e0e0; font-family:Arial,sans-serif; padding:20px; }
+    .card { background:#121212; border:1px solid #333; border-radius:16px; padding:20px; margin:18px 0; }
+    h1 { text-align:center; margin-bottom:25px; color:#fff; }
+    h2 { margin-bottom:12px; color:#fff; }
+    select, input { width:100%; padding:12px; margin:8px 0; background:#1e1e1e; border:1px solid #444; border-radius:8px; color:#fff; }
+    
+    button { 
+      padding:12px 20px; 
+      margin:5px; 
+      border:none; 
+      border-radius:8px; 
+      background:#555555; 
+      color:white; 
+      cursor:pointer; 
+      font-weight:600; 
+      transition: all 0.3s ease;
+    }
+    button:hover, button:active {
+      background:#ffffff;
+      color:#111111;
+      transform: scale(1.05);
+    }
 
-<title>Project M - Cloud & Factory Flasher</title>
+    .role-btn { background:#444444; color:white; }
+    .role-btn.active, .role-btn:hover { background:#ffffff; color:#111111; }
 
-<link rel="stylesheet" href="style.css">
-
-<script type="module"
-src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module">
-</script>
-
+    .room-card { 
+      background:#1a1a1e; 
+      padding:18px; 
+      margin:15px 0; 
+      border-radius:12px; 
+      border:1px solid #444; 
+    }
+    .room-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:15px;
+    }
+    .relay-row { 
+      display:grid; 
+      grid-template-columns: 90px 140px 1fr; 
+      gap:12px; 
+      margin:10px 0; 
+    }
+    .relay-row select {
+      background:#252525;
+      border:1px solid #555;
+      border-radius:8px;
+      padding:10px;
+      color:#fff;
+    }
+    .log { 
+      background:#000; 
+      padding:15px; 
+      border-radius:10px; 
+      min-height:250px; 
+      white-space:pre-wrap; 
+      font-family:Consolas,monospace; 
+      color:#0f0; 
+      overflow:auto; 
+    }
+  </style>
 </head>
 <body>
+  <h1>M-OS Company Flasher</h1>
 
-<div class="wrap">
-
-  <!-- FLASHER -->
-  <div class="card">
-    <h2>⚡ Factory Web Flasher</h2>
-
-    <p class="subtitle">
-      Connect ESP board with USB and click Install.
-    </p>
-
-    <div class="row">
-      <esp-web-install-button
-        manifest="firmware/manifest.json">
-      </esp-web-install-button>
-    </div>
-  </div>
-
-  <!-- CONNECTIVITY -->
+  <!-- Connectivity -->
   <div class="card">
     <h2>Connectivity & Cloud Credentials</h2>
-
-    <div id="connectivityBox">
-      Loading...
+    <select id="connectivity">
+      <option>MQTT</option>
+      <option>Firebase</option>
+      <option>Both</option>
+    </select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px; margin-top:12px;">
+      <input id="ssid" placeholder="WiFi Name" value="">
+      <input id="pass" type="password" placeholder="WiFi Password" value="">
     </div>
   </div>
 
-  <!-- BOARD -->
+  <!-- Board + Role -->
   <div class="card">
     <h2>Select Board</h2>
-
-    <select id="boardSelect">
-      <option>ESP32-S3-DevKitC N16R8</option>
-      <option>ESP32-S3-WROOM-1</option>
-      <option>ESP32-WROVER</option>
-      <option>ESP32 DevKit V1</option>
-      <option>ESP8266 NodeMCU</option>
+    <select id="boardSelect" onchange="updatePinType()">
+      <option value="">-- Select Board --</option>
+      <option value="ESP32-S3-DevKitC">ESP32-S3-DevKitC N16R8</option>
+      <option value="ESP32-S3-WROOM">ESP32-S3-WROOM-1</option>
+      <option value="ESP32-WROVER">ESP32-WROVER</option>
+      <option value="ESP32-DevKit">ESP32 DevKit V1</option>
+      <option value="ESP8266">ESP8266 NodeMCU</option>
     </select>
+
+    <h2 style="margin-top:25px;">Device Role</h2>
+    <div>
+      <button class="role-btn active" onclick="setRole(this, 'Mother Hub')">Mother Hub</button>
+      <button class="role-btn" onclick="setRole(this, 'Child Node')">Child Node</button>
+      <button class="role-btn" onclick="setRole(this, 'Hybrid')">Hybrid</button>
+    </div>
+    <p id="roleInfo" style="color:#e53935;margin:10px 0;">Selected: Mother Hub</p>
+
+    <select id="roomSelect">
+      <option>Master Bedroom</option>
+      <option>Master Washroom</option>
+      <option>Kitchen</option>
+      <option>Living Room</option>
+      <option>Hall</option>
+      <option>Office Room</option>
+      <option>Guest Room</option>
+    </select>
+
+    <h2 style="margin-top:20px;">Relay Count</h2>
+    <select id="relayCount"></select>
+
+    <button onclick="addRoom()">+ Add Room</button>
+
+    <div style="margin-top:25px;" id="roomsContainer"></div>
   </div>
 
-  <!-- ROLE + ROOMS -->
+  <!-- Flash -->
   <div class="card">
-    <h2>Define Device Role & Rooms</h2>
-
-    <div class="row">
-      <button onclick="setRole('Mother Hub')">
-        Mother Hub
-      </button>
-
-      <button onclick="setRole('Child Node')">
-        Child Node
-      </button>
-
-      <button onclick="setRole('Hybrid')">
-        Hybrid
-      </button>
-    </div>
-
-    <div class="info" id="roleInfo">
-      Selected: Mother Hub
-    </div>
-
-    <div id="motherPanel"
-         class="hidden-panel">
-    </div>
+    <button onclick="generateMainC()">Generate Code</button>
+    <button onclick="startWebFlash()">🚀 Flash</button>
   </div>
 
-  <!-- CLOUD SAVE -->
-  <div class="card">
-    <h2>Cloud Sync</h2>
+  <div class="log" id="log">Ready...</div>
 
-    <p class="subtitle">
-      Save configuration to Firebase.
-      Device auto syncs after flash.
-    </p>
+<script>
+let role = "Mother Hub";
+let rooms = [];
+let isD1Board = false;
 
-    <div class="row">
-      <button onclick="buildNow()">
-        Save Config to Cloud
-      </button>
-    </div>
+function populateRelayCount() {
+  const sel = document.getElementById('relayCount');
+  sel.innerHTML = '';
+  for(let i=1; i<=32; i++){
+    let opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = i;
+    sel.appendChild(opt);
+  }
+}
 
-    <div class="log" id="log">
-      Ready...
-    </div>
-  </div>
+function updatePinType() {
+  const board = document.getElementById('boardSelect').value;
+  isD1Board = (board === "ESP8266" || board === "ESP32-DevKit");
+  renderRooms();
+}
 
-</div>
+function setRole(btn, r) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  role = r;
+  document.getElementById('roleInfo').innerText = `Selected: ${r}`;
+}
 
-<script src="script.js"></script>
+function addRoom() {
+  const roomName = document.getElementById('roomSelect').value;
+  const relayCount = parseInt(document.getElementById('relayCount').value);
+  if(!roomName) return alert("Please select room");
 
+  rooms.push({
+    room: roomName,
+    relays: relayCount,
+    pins: Array(relayCount).fill(1),
+    devices: Array(relayCount).fill("Light")
+  });
+  renderRooms();
+}
+
+function renderRooms() {
+  let html = "";
+  rooms.forEach((room, roomIndex) => {
+    html += `
+      <div class="room-card">
+        <div class="room-header">
+          <strong>${room.room} — Relays: ${room.relays}</strong>
+          <button onclick="removeRoom(${roomIndex})" style="background:#555;color:white;border:none;padding:8px 16px;border-radius:8px;">Remove</button>
+        </div>`;
+
+    for(let i = 0; i < room.relays; i++) {
+      html += `
+        <div class="relay-row">
+          <select><option>IN${i+1}</option></select>
+          <select onchange="updatePin(${roomIndex},${i},this.value)">
+            ${generatePinOptions(room.pins[i])}
+          </select>
+          <select onchange="updateDevice(${roomIndex},${i},this.value)">
+            ${generateDeviceOptions(room.devices[i])}
+          </select>
+        </div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById('roomsContainer').innerHTML = html;
+}
+
+function generatePinOptions(selected) {
+  let s = "";
+  if (isD1Board) {
+    for(let i=1; i<=100; i++) s += `<option value="D${i}" ${"D"+i === selected ? 'selected' : ''}>D${i}</option>`;
+  } else {
+    for(let i=1; i<=100; i++) s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
+  }
+  return s;
+}
+
+function generateDeviceOptions(selected) {
+  const devs = ["Light","Fan","AC","Socket","Geyser","Exhaust Fan","TV","Curtain","RGB Light","Night Lamp"];
+  return devs.map(d => `<option value="${d}" ${d===selected?'selected':''}>${d}</option>`).join('');
+}
+
+function updatePin(roomIndex, relayIndex, value) { rooms[roomIndex].pins[relayIndex] = value; }
+function updateDevice(roomIndex, relayIndex, value) { rooms[roomIndex].devices[relayIndex] = value; }
+function removeRoom(index) { rooms.splice(index,1); renderRooms(); }
+
+function generateMainC() {
+  let code = `/**
+ * M-OS Firmware - Auto Generated
+ * Role  : ${role}
+ * Board : ${document.getElementById('boardSelect').value || 'Unknown'}
+ * Date  : ${new Date().toLocaleString()}
+ * Rooms : ${rooms.length}
+ */\n\n`;
+
+  code += `#include <stdio.h>\n#include "freertos/FreeRTOS.h"\n#include "freertos/task.h"\n#include "driver/gpio.h"\n#include "esp_log.h"\n\n`;
+  code += `static const char *TAG = "M-OS";\n\nvoid app_main(void) {\n    ESP_LOGI(TAG, "M-OS Starting - Role: ${role}");\n\n`;
+
+  rooms.forEach(room => {
+    room.pins.forEach((pin, i) => {
+      code += `    // ${room.room} - Relay ${i+1}\n`;
+      code += `    gpio_reset_pin(${pin});\n`;
+      code += `    gpio_set_direction(${pin}, GPIO_MODE_OUTPUT);\n`;
+      code += `    gpio_set_level(${pin}, 0);\n\n`;
+    });
+  });
+
+  code += `    ESP_LOGI(TAG, "All relays initialized successfully!");\n\n    while(1) {\n        vTaskDelay(pdMS_TO_TICKS(1000));\n    }\n}\n`;
+
+  window.lastCode = code;
+  document.getElementById('log').innerText = code;   // ← Full code visible
+  console.log(code); // for debugging
+}
+
+function startWebFlash() {
+  const log = document.getElementById('log');
+  if (!("serial" in navigator)) {
+    log.innerText = "Your browser does not support installing things on ESP devices. Use Google Chrome or Microsoft Edge.";
+    return;
+  }
+  log.innerText = "⚡ Flashing Started...\nPlease connect your ESP device...";
+}
+
+// Initialize
+populateRelayCount();
+</script>
 </body>
 </html>
