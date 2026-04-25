@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>M-OS Company Flasher</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#0a0a0a; color:#e0e0e0; font-family:Arial,sans-serif; padding:20px; }
@@ -13,6 +15,7 @@
     select, input { width:100%; padding:12px; margin:8px 0; background:#1e1e1e; border:1px solid #444; border-radius:8px; color:#fff; }
     button { padding:12px 20px; margin:5px; border:none; border-radius:8px; background:#e53935; color:white; cursor:pointer; font-weight:600; }
     button:hover { background:#c62828; }
+    .save-btn { background:#4CAF50; }
     .role-btn { background:#333; }
     .role-btn.active { background:#e53935; }
     .add-btn { background:#4CAF50; }
@@ -56,7 +59,6 @@
   <!-- Device Role -->
   <div class="card">
     <h2>Device Role</h2>
-    
     <div>
       <button class="role-btn active" onclick="setRole(this, 'Mother Hub')">Mother Hub</button>
       <button class="role-btn" onclick="setRole(this, 'Child Node')">Child Node</button>
@@ -90,11 +92,33 @@
     <h2>Flash</h2>
     <button onclick="generateMainC()">Generate Code</button>
     <button class="flash-btn" onclick="startWebFlash()">🚀 Factory Web Flasher</button>
+    <button class="save-btn" onclick="saveToFirebase()">💾 Save to Firebase</button>
+    <button class="save-btn" onclick="loadFromFirebase()">📥 Load from Firebase</button>
   </div>
 
   <div class="log" id="log">Ready...</div>
 
 <script>
+// Firebase Config
+const firebaseConfig = {
+  databaseURL: "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+let app, db, configRef;
+
+window.onload = function() {
+  try {
+    app = firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    configRef = db.ref("mos_config");
+    console.log("Firebase Connected");
+  } catch(e) {
+    console.error("Firebase Init Error:", e);
+  }
+
+  populateRelayCount();
+};
+
 let role = "Mother Hub";
 let rooms = [];
 let isD1Board = false;
@@ -126,7 +150,6 @@ function setRole(btn, r) {
 function addRoom() {
   const roomName = document.getElementById('roomSelect').value;
   const relayCount = parseInt(document.getElementById('relayCount').value);
-
   if(!roomName) return alert("Please select room");
 
   rooms.push({
@@ -135,7 +158,6 @@ function addRoom() {
     pins: Array(relayCount).fill(1),
     devices: Array(relayCount).fill("Light")
   });
-
   renderRooms();
 }
 
@@ -161,7 +183,7 @@ function renderRooms() {
     }
     html += `</div></div>`;
   });
-  document.getElementById('roomsContainer').innerHTML = html;
+  document.getElementById('roomsContainer').innerHTML = html || "<p>No rooms added yet.</p>";
 }
 
 function generatePinOptions(selected) {
@@ -219,6 +241,43 @@ function generateMainC() {
   document.getElementById('log').innerText = code;
 }
 
+function saveToFirebase() {
+  if (!configRef) return alert("Firebase not connected");
+  const data = {
+    role: role,
+    board: document.getElementById('boardSelect').value,
+    rooms: rooms,
+    ssid: document.getElementById('ssid').value,
+    pass: document.getElementById('pass').value,
+    timestamp: Date.now()
+  };
+  configRef.set(data).then(() => {
+    document.getElementById('log').innerText = "✅ Saved to Firebase successfully!";
+  }).catch(err => {
+    document.getElementById('log').innerText = "❌ Save Error: " + err.message;
+  });
+}
+
+function loadFromFirebase() {
+  if (!configRef) return alert("Firebase not connected");
+  configRef.once('value').then(snapshot => {
+    const data = snapshot.val();
+    if (data) {
+      role = data.role || "Mother Hub";
+      document.getElementById('boardSelect').value = data.board || "";
+      rooms = data.rooms || [];
+      document.getElementById('ssid').value = data.ssid || "";
+      document.getElementById('pass').value = data.pass || "";
+      renderRooms();
+      document.getElementById('log').innerText = "✅ Loaded from Firebase!";
+    } else {
+      document.getElementById('log').innerText = "No saved config found.";
+    }
+  }).catch(err => {
+    document.getElementById('log').innerText = "❌ Load Error: " + err.message;
+  });
+}
+
 function startWebFlash() {
   const log = document.getElementById('log');
   if (!("serial" in navigator)) {
@@ -227,9 +286,6 @@ function startWebFlash() {
   }
   log.innerText = "⚡ Factory Web Flasher Starting...\nPlease connect your ESP device...";
 }
-
-// Initialize
-populateRelayCount();
 </script>
 </body>
 </html>
