@@ -1,205 +1,109 @@
 <!DOCTYPE html>
-<html lang="te">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-OS Company Flasher</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0a0a0a; color:#e0e0e0; font-family:Arial,sans-serif; padding:20px; line-height:1.5; }
-    .card { background:#121212; border:1px solid #333; border-radius:16px; padding:20px; margin:18px 0; }
-    h1 { text-align:center; margin-bottom:25px; color:#fff; }
-    h2 { margin-bottom:12px; color:#fff; }
-    select, input { width:100%; padding:12px; margin:8px 0; background:#1e1e1e; border:1px solid #444; border-radius:8px; color:#fff; }
-    button { padding:12px 20px; margin:5px; border:none; border-radius:8px; background:#e53935; color:white; cursor:pointer; font-weight:600; }
-    button:hover { background:#c62828; }
-    .save-btn { background:#4CAF50; }
-    .role-btn { background:#333; }
-    .role-btn.active { background:#e53935; }
-    .add-btn { background:#4CAF50; }
-    .flash-btn { background:#2196F3; font-size:16px; padding:14px 24px; }
-    .room-card { background:#1a1a1e; padding:15px; margin:12px 0; border-radius:12px; border:1px solid #444; }
-    .relay-row { display:grid; grid-template-columns: 90px 130px 1fr; gap:10px; margin:8px 0; }
-    .log { background:#000; padding:15px; border-radius:10px; min-height:200px; white-space:pre-wrap; font-family:Consolas,monospace; color:#0f0; overflow:auto; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Project M - Cloud & Factory Flasher</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script type="module"
+src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module">
+</script>
+
 </head>
 <body>
-  <h1>M-OS Company Flasher</h1>
 
-  <!-- Connectivity -->
-  <div class="card">
-    <h2>Connectivity & Cloud Credentials</h2>
-    <select id="connectivity">
-      <option>MQTT</option>
-      <option>Firebase</option>
-      <option>Both</option>
-    </select>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
-      <input id="ssid" placeholder="WiFi Name" value="">
-      <input id="pass" type="password" placeholder="WiFi Password" value="">
-    </div>
-  </div>
+<div class="wrap">
 
-  <!-- Board -->
-  <div class="card">
-    <h2>Select Board</h2>
-    <select id="boardSelect" onchange="updatePinType()">
-      <option value="">-- Select Board --</option>
-      <option value="ESP32-S3-DevKitC">ESP32-S3-DevKitC N16R8</option>
-      <option value="ESP32-S3-WROOM">ESP32-S3-WROOM-1</option>
-      <option value="ESP32-WROVER">ESP32-WROVER</option>
-      <option value="ESP32-DevKit">ESP32 DevKit V1</option>
-      <option value="ESP8266">ESP8266 NodeMCU</option>
-    </select>
-  </div>
-
-  <!-- Device Role & Rooms -->
-  <div class="card">
-    <h2>Device Role</h2>
-    <div>
-      <button class="role-btn active" onclick="setRole(this, 'Mother Hub')">Mother Hub</button>
-      <button class="role-btn" onclick="setRole(this, 'Child Node')">Child Node</button>
-      <button class="role-btn" onclick="setRole(this, 'Hybrid')">Hybrid</button>
-    </div>
-    <p id="roleInfo" style="color:#e53935;margin:10px 0;">Selected: Mother Hub</p>
-
-    <select id="roomSelect">
-      <option>Master Bedroom</option>
-      <option>Master Washroom</option>
-      <option>Kitchen</option>
-      <option>Living Room</option>
-      <option>Hall</option>
-      <option>Office Room</option>
-      <option>Guest Room</option>
-    </select>
-
-    <label>Relay Count (1 - 32)</label>
-    <select id="relayCount"></select>
-    <button class="add-btn" onclick="addRoom()">+ Add Room</button>
-
-    <div style="margin-top:20px;">
-      <h2>Added Rooms</h2>
-      <div id="roomsContainer"></div>
-    </div>
-  </div>
-
-  <!-- Flash -->
-  <div class="card">
-    <h2>Flash</h2>
-    <button onclick="generateMainC()">Generate Code</button>
-    <button class="save-btn" onclick="saveToFirebase()">💾 Save to Firebase</button>
-    <button class="save-btn" onclick="loadFromFirebase()">📥 Load from Firebase</button>
-  </div>
-
-  <!-- Web Flasher -->
+  <!-- FLASHER -->
   <div class="card">
     <h2>⚡ Factory Web Flasher</h2>
-    <p>ESP board USB connect chesi BOOT button press cheyyandi</p>
-    <button class="flash-btn" onclick="startWebFlash()">🚀 Connect & Flash</button>
+
+    <p class="subtitle">
+      Connect ESP board with USB and click Install.
+    </p>
+
+    <div class="row">
+      <esp-web-install-button
+        manifest="firmware/manifest.json">
+      </esp-web-install-button>
+    </div>
   </div>
 
-  <div class="log" id="log">Ready...</div>
+  <!-- CONNECTIVITY -->
+  <div class="card">
+    <h2>Connectivity & Cloud Credentials</h2>
 
-<script>
-// Firebase Config
-const firebaseConfig = {
-  databaseURL: "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const configRef = db.ref("mos_config");
+    <div id="connectivityBox">
+      Loading...
+    </div>
+  </div>
 
-let role = "Mother Hub";
-let rooms = [];
-let isD1Board = false;
+  <!-- BOARD -->
+  <div class="card">
+    <h2>Select Board</h2>
 
-function populateRelayCount() {
-  const sel = document.getElementById('relayCount');
-  sel.innerHTML = '';
-  for(let i=1; i<=32; i++){
-    let opt = document.createElement('option');
-    opt.value = i; opt.textContent = i;
-    sel.appendChild(opt);
-  }
-}
+    <select id="boardSelect">
+      <option>ESP32-S3-DevKitC N16R8</option>
+      <option>ESP32-S3-WROOM-1</option>
+      <option>ESP32-WROVER</option>
+      <option>ESP32 DevKit V1</option>
+      <option>ESP8266 NodeMCU</option>
+    </select>
+  </div>
 
-function updatePinType() {
-  const board = document.getElementById('boardSelect').value;
-  isD1Board = (board === "ESP8266" || board === "ESP32-DevKit");
-  renderRooms();
-}
+  <!-- ROLE + ROOMS -->
+  <div class="card">
+    <h2>Define Device Role & Rooms</h2>
 
-function setRole(btn, r) {
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  role = r;
-  document.getElementById('roleInfo').innerText = `Selected: ${r}`;
-}
+    <div class="row">
+      <button onclick="setRole('Mother Hub')">
+        Mother Hub
+      </button>
 
-function addRoom() {
-  const roomName = document.getElementById('roomSelect').value;
-  const count = parseInt(document.getElementById('relayCount').value);
-  if(!roomName) return alert("Room select cheyyandi");
-  rooms.push({room: roomName, relays: count, pins: Array(count).fill(1), devices: Array(count).fill("Light")});
-  renderRooms();
-}
+      <button onclick="setRole('Child Node')">
+        Child Node
+      </button>
 
-function renderRooms() {
-  let html = "";
-  rooms.forEach((room, ri) => {
-    html += `<div class="room-card"><strong>${room.room}</strong> — ${room.relays} Relays 
-      <button onclick="removeRoom(${ri})" style="float:right;background:#e53935;padding:4px 10px;border-radius:6px;">Remove</button><div style="margin-top:10px;">`;
-    for(let i=0; i<room.relays; i++){
-      html += `<div class="relay-row">
-        <select><option>IN${i+1}</option></select>
-        <select onchange="updatePin(${ri},${i},this.value)">${generatePinOptions(room.pins[i])}</select>
-        <select onchange="updateDevice(${ri},${i},this.value)">${generateDeviceOptions(room.devices[i])}</select>
-      </div>`;
-    }
-    html += `</div></div>`;
-  });
-  document.getElementById('roomsContainer').innerHTML = html;
-}
+      <button onclick="setRole('Hybrid')">
+        Hybrid
+      </button>
+    </div>
 
-function generatePinOptions(selected) {
-  let s = "";
-  if(isD1Board){
-    for(let i=1;i<=100;i++) s += `<option value="D${i}" ${"D"+i===selected?'selected':''}>D${i}</option>`;
-  } else {
-    for(let i=1;i<=100;i++) s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
-  }
-  return s;
-}
+    <div class="info" id="roleInfo">
+      Selected: Mother Hub
+    </div>
 
-function generateDeviceOptions(selected) {
-  const devs = ["Light","Fan","AC","Socket","Geyser","Exhaust Fan","TV","Curtain","RGB Light","Night Lamp"];
-  return devs.map(d => `<option value="${d}" ${d===selected?'selected':''}>${d}</option>`).join('');
-}
+    <div id="motherPanel"
+         class="hidden-panel">
+    </div>
+  </div>
 
-function updatePin(ri, i, val){ rooms[ri].pins[i] = val; }
-function updateDevice(ri, i, val){ rooms[ri].devices[i] = val; }
-function removeRoom(i){ rooms.splice(i,1); renderRooms(); }
+  <!-- CLOUD SAVE -->
+  <div class="card">
+    <h2>Cloud Sync</h2>
 
-function generateMainC() {
-  let code = `/**\n * M-OS Firmware - Auto Generated\n * Role: ${role}\n * Board: ${document.getElementById('boardSelect').value}\n */\n\n`;
-  code += `void app_main(void) {\n    // Your code here...\n}`;
-  document.getElementById('log').innerText = code;
-}
+    <p class="subtitle">
+      Save configuration to Firebase.
+      Device auto syncs after flash.
+    </p>
 
-function saveToFirebase() { /* same */ configRef.set({role, board:document.getElementById('boardSelect').value, rooms, ssid:document.getElementById('ssid').value}).then(()=> document.getElementById('log').innerText = "✅ Saved!"); }
-function loadFromFirebase() { /* same */ }
+    <div class="row">
+      <button onclick="buildNow()">
+        Save Config to Cloud
+      </button>
+    </div>
 
-function startWebFlash() {
-  const log = document.getElementById('log');
-  log.innerText = "🔄 Connecting...\nPlease use Chrome/Edge and connect ESP board.";
-  if("serial" in navigator){
-    navigator.serial.requestPort().then(()=> log.innerText += "\n✅ Device Connected!").catch(e=> log.innerText += "\n❌ "+e.message);
-  }
-}
+    <div class="log" id="log">
+      Ready...
+    </div>
+  </div>
 
-populateRelayCount();
-</script>
+</div>
+
+<script src="script.js"></script>
+
 </body>
 </html>
