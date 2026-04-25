@@ -59,6 +59,7 @@
   <!-- Device Role -->
   <div class="card">
     <h2>Device Role</h2>
+    
     <div>
       <button class="role-btn active" onclick="setRole(this, 'Mother Hub')">Mother Hub</button>
       <button class="role-btn" onclick="setRole(this, 'Child Node')">Child Node</button>
@@ -104,20 +105,9 @@ const firebaseConfig = {
   databaseURL: "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-let app, db, configRef;
-
-window.onload = function() {
-  try {
-    app = firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    configRef = db.ref("mos_config");
-    console.log("Firebase Connected");
-  } catch(e) {
-    console.error("Firebase Init Error:", e);
-  }
-
-  populateRelayCount();
-};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const configRef = db.ref("mos_config");
 
 let role = "Mother Hub";
 let rooms = [];
@@ -161,14 +151,13 @@ function addRoom() {
   renderRooms();
 }
 
-function renderRooms() {
+function renderRooms() { /* same as before */ 
   let html = "";
   rooms.forEach((room, roomIndex) => {
     html += `<div class="room-card">
       <strong>${room.room}</strong> — Relays: ${room.relays}
       <button onclick="removeRoom(${roomIndex})" style="float:right;background:#e53935;color:white;border:none;padding:6px 12px;border-radius:6px;">Remove</button>
       <div style="margin-top:12px;">`;
-
     for(let i = 0; i < room.relays; i++) {
       html += `
         <div class="relay-row">
@@ -183,66 +172,48 @@ function renderRooms() {
     }
     html += `</div></div>`;
   });
-  document.getElementById('roomsContainer').innerHTML = html || "<p>No rooms added yet.</p>";
+  document.getElementById('roomsContainer').innerHTML = html;
 }
 
-function generatePinOptions(selected) {
+function generatePinOptions(selected) { /* same */ 
   let s = "";
   if (isD1Board) {
-    for(let i=1; i<=100; i++) {
-      s += `<option value="D${i}" ${"D"+i === selected ? 'selected' : ''}>D${i}</option>`;
-    }
+    for(let i=1; i<=100; i++) s += `<option value="D${i}" ${"D"+i === selected ? 'selected' : ''}>D${i}</option>`;
   } else {
-    for(let i=1; i<=100; i++) {
-      s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
-    }
+    for(let i=1; i<=100; i++) s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
   }
   return s;
 }
 
-function generateDeviceOptions(selected) {
+function generateDeviceOptions(selected) { /* same */ 
   const devs = ["Light","Fan","AC","Socket","Geyser","Exhaust Fan","TV","Curtain","RGB Light","Night Lamp"];
   return devs.map(d => `<option value="${d}" ${d===selected?'selected':''}>${d}</option>`).join('');
 }
 
-function updatePin(roomIndex, relayIndex, value) {
-  rooms[roomIndex].pins[relayIndex] = value;
-}
+function updatePin(roomIndex, relayIndex, value) { rooms[roomIndex].pins[relayIndex] = value; }
+function updateDevice(roomIndex, relayIndex, value) { rooms[roomIndex].devices[relayIndex] = value; }
+function removeRoom(index) { rooms.splice(index,1); renderRooms(); }
 
-function updateDevice(roomIndex, relayIndex, value) {
-  rooms[roomIndex].devices[relayIndex] = value;
-}
-
-function removeRoom(index) {
-  rooms.splice(index,1);
-  renderRooms();
-}
-
-function generateMainC() {
+function generateMainC() { /* same as before */ 
   let code = `/**
  * M-OS Firmware - Auto Generated
  * Role  : ${role}
  * Board : ${document.getElementById('boardSelect').value || 'Unknown'}
  * Date  : ${new Date().toLocaleString()}
  */\n\n`;
-
   code += `#include <stdio.h>\n#include "freertos/FreeRTOS.h"\n#include "freertos/task.h"\n#include "driver/gpio.h"\n#include "esp_log.h"\n\n`;
   code += `static const char *TAG = "M-OS";\n\nvoid app_main(void) {\n    ESP_LOGI(TAG, "M-OS Starting - Role: ${role}");\n\n`;
-
   rooms.forEach(room => {
     room.pins.forEach((pin, i) => {
       code += `    gpio_reset_pin(${pin});\n    gpio_set_direction(${pin}, GPIO_MODE_OUTPUT);\n    gpio_set_level(${pin}, 0);\n`;
     });
   });
-
   code += `\n    ESP_LOGI(TAG, "All relays initialized successfully");\n\n    while(1) {\n        vTaskDelay(pdMS_TO_TICKS(2000));\n    }\n}\n`;
-
   window.lastCode = code;
   document.getElementById('log').innerText = code;
 }
 
 function saveToFirebase() {
-  if (!configRef) return alert("Firebase not connected");
   const data = {
     role: role,
     board: document.getElementById('boardSelect').value,
@@ -254,12 +225,11 @@ function saveToFirebase() {
   configRef.set(data).then(() => {
     document.getElementById('log').innerText = "✅ Saved to Firebase successfully!";
   }).catch(err => {
-    document.getElementById('log').innerText = "❌ Save Error: " + err.message;
+    document.getElementById('log').innerText = "❌ Error: " + err.message;
   });
 }
 
 function loadFromFirebase() {
-  if (!configRef) return alert("Firebase not connected");
   configRef.once('value').then(snapshot => {
     const data = snapshot.val();
     if (data) {
@@ -286,6 +256,9 @@ function startWebFlash() {
   }
   log.innerText = "⚡ Factory Web Flasher Starting...\nPlease connect your ESP device...";
 }
+
+// Initialize
+populateRelayCount();
 </script>
 </body>
 </html>
