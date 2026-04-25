@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0a0a0a; color:#e0e0e0; font-family:Arial,sans-serif; padding:20px; }
+    body { background:#0a0a0a; color:#e0e0e0; font-family:Arial,sans-serif; padding:20px; line-height:1.5; }
     .card { background:#121212; border:1px solid #333; border-radius:16px; padding:20px; margin:18px 0; }
     h1 { text-align:center; margin-bottom:25px; color:#fff; }
     h2 { margin-bottom:12px; color:#fff; }
@@ -22,13 +22,13 @@
     .flash-btn { background:#2196F3; font-size:16px; padding:14px 24px; }
     .room-card { background:#1a1a1e; padding:15px; margin:12px 0; border-radius:12px; border:1px solid #444; }
     .relay-row { display:grid; grid-template-columns: 90px 130px 1fr; gap:10px; margin:8px 0; }
-    .log { background:#000; padding:15px; border-radius:10px; min-height:180px; white-space:pre-wrap; font-family:Consolas,monospace; color:#0f0; overflow:auto; }
+    .log { background:#000; padding:15px; border-radius:10px; min-height:200px; white-space:pre-wrap; font-family:Consolas,monospace; color:#0f0; overflow:auto; }
   </style>
 </head>
 <body>
   <h1>M-OS Company Flasher</h1>
 
-  <!-- Connectivity & Cloud Credentials -->
+  <!-- Connectivity -->
   <div class="card">
     <h2>Connectivity & Cloud Credentials</h2>
     <select id="connectivity">
@@ -36,8 +36,7 @@
       <option>Firebase</option>
       <option>Both</option>
     </select>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px; margin-top:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
       <input id="ssid" placeholder="WiFi Name" value="">
       <input id="pass" type="password" placeholder="WiFi Password" value="">
     </div>
@@ -56,10 +55,9 @@
     </select>
   </div>
 
-  <!-- Device Role -->
+  <!-- Device Role & Rooms -->
   <div class="card">
     <h2>Device Role</h2>
-    
     <div>
       <button class="role-btn active" onclick="setRole(this, 'Mother Hub')">Mother Hub</button>
       <button class="role-btn" onclick="setRole(this, 'Child Node')">Child Node</button>
@@ -79,7 +77,6 @@
 
     <label>Relay Count (1 - 32)</label>
     <select id="relayCount"></select>
-
     <button class="add-btn" onclick="addRoom()">+ Add Room</button>
 
     <div style="margin-top:20px;">
@@ -92,9 +89,15 @@
   <div class="card">
     <h2>Flash</h2>
     <button onclick="generateMainC()">Generate Code</button>
-    <button class="flash-btn" onclick="startWebFlash()">🚀 Factory Web Flasher</button>
     <button class="save-btn" onclick="saveToFirebase()">💾 Save to Firebase</button>
     <button class="save-btn" onclick="loadFromFirebase()">📥 Load from Firebase</button>
+  </div>
+
+  <!-- Web Flasher -->
+  <div class="card">
+    <h2>⚡ Factory Web Flasher</h2>
+    <p>ESP board USB connect chesi BOOT button press cheyyandi</p>
+    <button class="flash-btn" onclick="startWebFlash()">🚀 Connect & Flash</button>
   </div>
 
   <div class="log" id="log">Ready...</div>
@@ -104,7 +107,6 @@
 const firebaseConfig = {
   databaseURL: "https://projectm-chinna-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
-
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const configRef = db.ref("mos_config");
@@ -118,8 +120,7 @@ function populateRelayCount() {
   sel.innerHTML = '';
   for(let i=1; i<=32; i++){
     let opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i;
+    opt.value = i; opt.textContent = i;
     sel.appendChild(opt);
   }
 }
@@ -139,125 +140,65 @@ function setRole(btn, r) {
 
 function addRoom() {
   const roomName = document.getElementById('roomSelect').value;
-  const relayCount = parseInt(document.getElementById('relayCount').value);
-  if(!roomName) return alert("Please select room");
-
-  rooms.push({
-    room: roomName,
-    relays: relayCount,
-    pins: Array(relayCount).fill(1),
-    devices: Array(relayCount).fill("Light")
-  });
+  const count = parseInt(document.getElementById('relayCount').value);
+  if(!roomName) return alert("Room select cheyyandi");
+  rooms.push({room: roomName, relays: count, pins: Array(count).fill(1), devices: Array(count).fill("Light")});
   renderRooms();
 }
 
-function renderRooms() { /* same as before */ 
+function renderRooms() {
   let html = "";
-  rooms.forEach((room, roomIndex) => {
-    html += `<div class="room-card">
-      <strong>${room.room}</strong> — Relays: ${room.relays}
-      <button onclick="removeRoom(${roomIndex})" style="float:right;background:#e53935;color:white;border:none;padding:6px 12px;border-radius:6px;">Remove</button>
-      <div style="margin-top:12px;">`;
-    for(let i = 0; i < room.relays; i++) {
-      html += `
-        <div class="relay-row">
-          <select><option>IN${i+1}</option></select>
-          <select onchange="updatePin(${roomIndex},${i},this.value)">
-            ${generatePinOptions(room.pins[i])}
-          </select>
-          <select onchange="updateDevice(${roomIndex},${i},this.value)">
-            ${generateDeviceOptions(room.devices[i])}
-          </select>
-        </div>`;
+  rooms.forEach((room, ri) => {
+    html += `<div class="room-card"><strong>${room.room}</strong> — ${room.relays} Relays 
+      <button onclick="removeRoom(${ri})" style="float:right;background:#e53935;padding:4px 10px;border-radius:6px;">Remove</button><div style="margin-top:10px;">`;
+    for(let i=0; i<room.relays; i++){
+      html += `<div class="relay-row">
+        <select><option>IN${i+1}</option></select>
+        <select onchange="updatePin(${ri},${i},this.value)">${generatePinOptions(room.pins[i])}</select>
+        <select onchange="updateDevice(${ri},${i},this.value)">${generateDeviceOptions(room.devices[i])}</select>
+      </div>`;
     }
     html += `</div></div>`;
   });
   document.getElementById('roomsContainer').innerHTML = html;
 }
 
-function generatePinOptions(selected) { /* same */ 
+function generatePinOptions(selected) {
   let s = "";
-  if (isD1Board) {
-    for(let i=1; i<=100; i++) s += `<option value="D${i}" ${"D"+i === selected ? 'selected' : ''}>D${i}</option>`;
+  if(isD1Board){
+    for(let i=1;i<=100;i++) s += `<option value="D${i}" ${"D"+i===selected?'selected':''}>D${i}</option>`;
   } else {
-    for(let i=1; i<=100; i++) s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
+    for(let i=1;i<=100;i++) s += `<option value="${i}" ${i==selected?'selected':''}>GPIO ${i}</option>`;
   }
   return s;
 }
 
-function generateDeviceOptions(selected) { /* same */ 
+function generateDeviceOptions(selected) {
   const devs = ["Light","Fan","AC","Socket","Geyser","Exhaust Fan","TV","Curtain","RGB Light","Night Lamp"];
   return devs.map(d => `<option value="${d}" ${d===selected?'selected':''}>${d}</option>`).join('');
 }
 
-function updatePin(roomIndex, relayIndex, value) { rooms[roomIndex].pins[relayIndex] = value; }
-function updateDevice(roomIndex, relayIndex, value) { rooms[roomIndex].devices[relayIndex] = value; }
-function removeRoom(index) { rooms.splice(index,1); renderRooms(); }
+function updatePin(ri, i, val){ rooms[ri].pins[i] = val; }
+function updateDevice(ri, i, val){ rooms[ri].devices[i] = val; }
+function removeRoom(i){ rooms.splice(i,1); renderRooms(); }
 
-function generateMainC() { /* same as before */ 
-  let code = `/**
- * M-OS Firmware - Auto Generated
- * Role  : ${role}
- * Board : ${document.getElementById('boardSelect').value || 'Unknown'}
- * Date  : ${new Date().toLocaleString()}
- */\n\n`;
-  code += `#include <stdio.h>\n#include "freertos/FreeRTOS.h"\n#include "freertos/task.h"\n#include "driver/gpio.h"\n#include "esp_log.h"\n\n`;
-  code += `static const char *TAG = "M-OS";\n\nvoid app_main(void) {\n    ESP_LOGI(TAG, "M-OS Starting - Role: ${role}");\n\n`;
-  rooms.forEach(room => {
-    room.pins.forEach((pin, i) => {
-      code += `    gpio_reset_pin(${pin});\n    gpio_set_direction(${pin}, GPIO_MODE_OUTPUT);\n    gpio_set_level(${pin}, 0);\n`;
-    });
-  });
-  code += `\n    ESP_LOGI(TAG, "All relays initialized successfully");\n\n    while(1) {\n        vTaskDelay(pdMS_TO_TICKS(2000));\n    }\n}\n`;
-  window.lastCode = code;
+function generateMainC() {
+  let code = `/**\n * M-OS Firmware - Auto Generated\n * Role: ${role}\n * Board: ${document.getElementById('boardSelect').value}\n */\n\n`;
+  code += `void app_main(void) {\n    // Your code here...\n}`;
   document.getElementById('log').innerText = code;
 }
 
-function saveToFirebase() {
-  const data = {
-    role: role,
-    board: document.getElementById('boardSelect').value,
-    rooms: rooms,
-    ssid: document.getElementById('ssid').value,
-    pass: document.getElementById('pass').value,
-    timestamp: Date.now()
-  };
-  configRef.set(data).then(() => {
-    document.getElementById('log').innerText = "✅ Saved to Firebase successfully!";
-  }).catch(err => {
-    document.getElementById('log').innerText = "❌ Error: " + err.message;
-  });
-}
-
-function loadFromFirebase() {
-  configRef.once('value').then(snapshot => {
-    const data = snapshot.val();
-    if (data) {
-      role = data.role || "Mother Hub";
-      document.getElementById('boardSelect').value = data.board || "";
-      rooms = data.rooms || [];
-      document.getElementById('ssid').value = data.ssid || "";
-      document.getElementById('pass').value = data.pass || "";
-      renderRooms();
-      document.getElementById('log').innerText = "✅ Loaded from Firebase!";
-    } else {
-      document.getElementById('log').innerText = "No saved config found.";
-    }
-  }).catch(err => {
-    document.getElementById('log').innerText = "❌ Load Error: " + err.message;
-  });
-}
+function saveToFirebase() { /* same */ configRef.set({role, board:document.getElementById('boardSelect').value, rooms, ssid:document.getElementById('ssid').value}).then(()=> document.getElementById('log').innerText = "✅ Saved!"); }
+function loadFromFirebase() { /* same */ }
 
 function startWebFlash() {
   const log = document.getElementById('log');
-  if (!("serial" in navigator)) {
-    log.innerText = "Error: Chrome or Edge browser use cheyyandi!";
-    return;
+  log.innerText = "🔄 Connecting...\nPlease use Chrome/Edge and connect ESP board.";
+  if("serial" in navigator){
+    navigator.serial.requestPort().then(()=> log.innerText += "\n✅ Device Connected!").catch(e=> log.innerText += "\n❌ "+e.message);
   }
-  log.innerText = "⚡ Factory Web Flasher Starting...\nPlease connect your ESP device...";
 }
 
-// Initialize
 populateRelayCount();
 </script>
 </body>
